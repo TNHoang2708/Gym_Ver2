@@ -1,0 +1,18 @@
+import type { Metadata } from 'next'
+import { ClipboardList } from 'lucide-react'
+
+export const metadata: Metadata = { title: 'Setup — Tell us about yourself' }
+
+export default function OnboardingPage() {
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="text-center space-y-4">
+        <div className="w-16 h-16 rounded-2xl bg-crimson/10 border border-crimson/20 flex items-center justify-center mx-auto">
+          <ClipboardList className="w-8 h-8 text-crimson" />
+        </div>
+        <h1 className="text-2xl font-bold">Quick Setup</h1>
+        <p className="text-muted-foreground">Coming in Phase 2…</p>
+      </div>
+    </div>
+  )
+}
