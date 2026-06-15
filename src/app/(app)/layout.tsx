@@ -1,6 +1,9 @@
+export const dynamic = 'force-dynamic'
+
 import { Sidebar } from '@/components/layout/Sidebar'
 import { BottomNav } from '@/components/layout/BottomNav'
 import { Toaster } from '@/components/ui/sonner'
+
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
