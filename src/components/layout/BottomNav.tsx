@@ -2,13 +2,14 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Sparkles, BookHeart, Utensils, User } from 'lucide-react'
+import { Home, Sparkles, BookHeart, Utensils, User, Users } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 const navItems = [
   { href: '/dashboard', icon: Home, label: 'Home' },
   { href: '/ai-coach', icon: Sparkles, label: 'AI Coach' },
   { href: '/diary', icon: BookHeart, label: 'Diary' },
+  { href: '/community', icon: Users, label: 'Community' },
   { href: '/nutrition', icon: Utensils, label: 'Nutrition' },
   { href: '/profile', icon: User, label: 'Profile' },
 ]

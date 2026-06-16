@@ -189,3 +189,30 @@ export interface ApiError {
   error: string
   status: number
 }
+
+// ---- Social Types ----
+
+export interface Post {
+  id: string
+  user_id: string
+  workout_log_id?: string
+  ai_summary: string
+  volume_lifted: number
+  created_at: string
+}
+
+export interface PostLike {
+  id: string
+  post_id: string
+  user_id: string
+  created_at: string
+}
+
+export interface PostComment {
+  id: string
+  post_id: string
+  user_id: string
+  content: string
+  created_at: string
+}
+

@@ -204,14 +204,45 @@ export default function ActiveWorkoutPage() {
   if (workoutComplete) {
     const totalVolume = sessionLogs.reduce((sum, log) => sum + (log.weight_kg * log.reps_achieved), 0)
     
-    const handleShare = () => {
-      const text = `🔥 I just crushed a ${totalVolume}kg workout using Gym Planner AI! Join the leaderboard!`;
-      if (navigator.share) {
-        navigator.share({ title: 'Workout Complete', text });
-      } else {
-        navigator.clipboard.writeText(text);
-        toast.success('Workout summary copied to clipboard!');
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const [shareToCommunity, setShareToCommunity] = useState(true)
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const [publishing, setPublishing] = useState(false)
+
+    const handleFinish = async () => {
+      if (shareToCommunity) {
+        setPublishing(true)
+        try {
+          const supabase = createClient()
+          const { data: { user } } = await supabase.auth.getUser()
+          
+          if (user && workoutLogId) {
+            // 1. Get AI Summary
+            const res = await fetch('/api/social/summary', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ sessionLogs, totalVolume })
+            })
+            const { summary } = await res.json()
+
+            // 2. Insert into posts
+            await supabase.from('posts').insert({
+              user_id: user.id,
+              workout_log_id: workoutLogId,
+              ai_summary: summary,
+              volume_lifted: totalVolume
+            })
+            
+            toast.success('Workout shared to community! 🎊')
+          }
+        } catch (error) {
+          console.error(error)
+          toast.error('Failed to share to community')
+        }
+        setPublishing(false)
       }
+      
+      window.location.href = '/dashboard'
     }
 
     return (
@@ -229,21 +260,36 @@ export default function ActiveWorkoutPage() {
           <h1 className="text-4xl font-heading font-bold text-gradient-gold mb-2">Workout Complete!</h1>
           <p className="text-muted-foreground mb-8">You crushed it today.</p>
           
-          <div className="bg-black/30 rounded-2xl p-6 mb-8 border border-white/5">
+          <div className="bg-black/30 rounded-2xl p-6 mb-6 border border-white/5">
             <p className="text-sm text-muted-foreground uppercase tracking-widest font-bold mb-1">Total Volume Moved</p>
             <p className="text-4xl font-bold text-foreground">{totalVolume} <span className="text-xl text-muted-foreground">kg</span></p>
           </div>
           
-          <button 
-            onClick={handleShare}
-            className="flex items-center justify-center gap-2 w-full bg-white/5 text-foreground py-4 rounded-xl font-bold hover:bg-white/10 transition-colors mb-4"
-          >
-            <Share2 className="w-5 h-5" /> Share Milestone
-          </button>
+          <div className="flex items-center justify-between bg-white/5 p-4 rounded-xl border border-white/5 mb-8">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-gold/10 rounded-lg">
+                <Share2 className="w-5 h-5 text-gold" />
+              </div>
+              <div className="text-left">
+                <p className="font-bold text-sm">Share to Community Feed</p>
+                <p className="text-xs text-muted-foreground">Let others fist bump your gains</p>
+              </div>
+            </div>
+            <button 
+              onClick={() => setShareToCommunity(!shareToCommunity)}
+              className={`w-12 h-6 rounded-full transition-colors relative ${shareToCommunity ? 'bg-gold' : 'bg-white/10'}`}
+            >
+              <div className={`w-5 h-5 bg-black rounded-full absolute top-0.5 transition-transform ${shareToCommunity ? 'translate-x-6' : 'translate-x-0.5'}`} />
+            </button>
+          </div>
           
-          <Link href="/dashboard" className="block w-full bg-gold text-gold-foreground py-4 rounded-xl font-bold glow-gold">
-            Finish & Return Home
-          </Link>
+          <button 
+            onClick={handleFinish}
+            disabled={publishing}
+            className="block w-full bg-gold text-gold-foreground py-4 rounded-xl font-bold glow-gold disabled:opacity-50"
+          >
+            {publishing ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Finish & Return Home'}
+          </button>
         </motion.div>
       </div>
     )

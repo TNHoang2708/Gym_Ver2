@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Dumbbell, Home, Sparkles, BookHeart, Utensils, User, LogOut, ShieldCheck } from 'lucide-react'
+import { Dumbbell, Home, Sparkles, BookHeart, Utensils, User, LogOut, ShieldCheck, Users } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
 import { useEffect, useState } from 'react'
@@ -11,6 +11,7 @@ const navItems = [
   { href: '/dashboard', icon: Home, label: 'Dashboard' },
   { href: '/ai-coach', icon: Sparkles, label: 'AI Coach' },
   { href: '/diary', icon: BookHeart, label: 'Diary' },
+  { href: '/community', icon: Users, label: 'Community' },
   { href: '/nutrition', icon: Utensils, label: 'Nutrition' },
   { href: '/profile', icon: User, label: 'Profile' },
 ]
