@@ -304,12 +304,19 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Header / progress */}
-      <div className="px-6 pt-8 pb-4 max-w-lg mx-auto w-full">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-8 h-8 rounded-lg bg-crimson/10 border border-crimson/20 flex items-center justify-center">
-            <Dumbbell className="w-4 h-4 text-crimson" />
+    <div className="relative min-h-screen bg-background flex flex-col">
+      {/* Ambient Background */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div className="absolute top-[20%] right-[-10%] w-[60vw] h-[60vw] bg-gold/5 blur-[120px] rounded-full transform-gpu" />
+        <div className="absolute bottom-[10%] left-[-20%] w-[50vw] h-[50vw] bg-gold/5 blur-[100px] rounded-full transform-gpu" />
+      </div>
+
+      <div className="relative z-10 flex-1 flex flex-col w-full">
+        {/* Header / progress */}
+        <div className="px-6 pt-8 pb-4 max-w-lg mx-auto w-full">
+          <div className="flex items-center gap-3 mb-6">
+          <div className="w-8 h-8 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center">
+            <Dumbbell className="w-4 h-4 text-gold" />
           </div>
           <span className="text-sm font-semibold text-muted-foreground">
             Step {currentStep + 1} of {STEPS.length}
@@ -319,7 +326,7 @@ export default function OnboardingPage() {
         {/* Progress bar */}
         <div className="w-full bg-secondary rounded-full h-1.5 mb-1">
           <div
-            className="bg-crimson h-1.5 rounded-full transition-all duration-500"
+            className="bg-gold h-1.5 rounded-full transition-all duration-500"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -348,14 +355,14 @@ export default function OnboardingPage() {
                     className={cn(
                       'w-full flex items-center gap-4 px-4 py-3.5 rounded-xl border text-left transition-all duration-150',
                       isSelected
-                        ? 'bg-crimson/10 border-crimson/40 text-foreground'
+                        ? 'bg-gold/10 border-gold/40 text-foreground'
                         : 'bg-secondary border-border text-muted-foreground hover:border-border/80 hover:text-foreground'
                     )}
                   >
                     {opt.emoji && <span className="text-xl w-8 text-center">{opt.emoji}</span>}
                     <span className="font-medium flex-1">{opt.label}</span>
                     {isSelected && (
-                      <div className="w-5 h-5 rounded-full bg-crimson flex items-center justify-center flex-shrink-0">
+                      <div className="w-5 h-5 rounded-full bg-gold flex items-center justify-center flex-shrink-0">
                         <Check className="w-3 h-3 text-white" strokeWidth={3} />
                       </div>
                     )}
@@ -378,7 +385,7 @@ export default function OnboardingPage() {
                     className={cn(
                       'w-full flex items-center gap-4 px-4 py-3.5 rounded-xl border text-left transition-all duration-150',
                       isSelected
-                        ? 'bg-crimson/10 border-crimson/40 text-foreground'
+                        ? 'bg-gold/10 border-gold/40 text-foreground'
                         : 'bg-secondary border-border text-muted-foreground hover:border-border/80 hover:text-foreground'
                     )}
                   >
@@ -386,7 +393,7 @@ export default function OnboardingPage() {
                     <span className="font-medium flex-1">{opt.label}</span>
                     <div className={cn(
                       'w-5 h-5 rounded flex items-center justify-center flex-shrink-0 border transition-colors',
-                      isSelected ? 'bg-crimson border-crimson' : 'border-border'
+                      isSelected ? 'bg-gold border-gold' : 'border-border'
                     )}>
                       {isSelected && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
                     </div>
@@ -408,7 +415,7 @@ export default function OnboardingPage() {
                   min={step.min}
                   max={step.max}
                   placeholder={step.placeholder}
-                  className="w-full bg-secondary border border-border rounded-xl px-4 py-4 text-2xl font-bold text-foreground placeholder:text-muted-foreground/30 focus:outline-none focus:ring-2 focus:ring-crimson/50 focus:border-crimson/50 pr-20 transition-all"
+                  className="w-full bg-secondary border border-border rounded-xl px-4 py-4 text-2xl font-bold text-foreground placeholder:text-muted-foreground/30 focus:outline-none focus:ring-2 focus:ring-gold/50 focus:border-gold/50 pr-20 transition-all"
                   autoFocus
                 />
                 {step.unit && (
@@ -445,7 +452,7 @@ export default function OnboardingPage() {
             className={cn(
               'flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold transition-all duration-200',
               canProceed() && !saving
-                ? 'bg-crimson hover:bg-crimson/90 text-white glow-crimson'
+                ? 'bg-gold hover:bg-gold/90 text-white glow-gold'
                 : 'bg-secondary text-muted-foreground cursor-not-allowed'
             )}
           >
@@ -458,6 +465,7 @@ export default function OnboardingPage() {
             )}
           </button>
         </div>
+      </div>
       </div>
     </div>
   )

@@ -1,20 +1,18 @@
 'use client'
 
-
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Dumbbell, Mail, Lock, Loader2, Eye, EyeOff } from 'lucide-react'
+import { Dumbbell, Mail, Lock, Loader2, ArrowRight } from 'lucide-react'
 import { toast } from 'sonner'
+import { motion } from 'framer-motion'
 
 export default function LoginPage() {
   const router = useRouter()
   const supabase = createClient()
-
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
@@ -35,32 +33,38 @@ export default function LoginPage() {
 
   return (
     <div className="w-full max-w-md">
-      {/* Card */}
-      <div className="glass-card rounded-2xl p-8 space-y-8">
+      <motion.div 
+        className="glass-card rounded-[2rem] p-8 md:p-10 space-y-8 relative overflow-hidden"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, type: 'spring' }}
+      >
+        {/* Glow effect inside card */}
+        <div className="absolute -top-24 -right-24 w-48 h-48 bg-gold/20 rounded-full blur-[60px] pointer-events-none" />
+
         {/* Logo */}
-        <div className="text-center space-y-3">
-          <div className="w-14 h-14 rounded-2xl bg-crimson/10 border border-crimson/20 flex items-center justify-center mx-auto glow-crimson">
-            <Dumbbell className="w-7 h-7 text-crimson" strokeWidth={2.5} />
+        <div className="text-center space-y-4 relative z-10">
+          <div className="w-16 h-16 rounded-2xl bg-gold/10 border border-gold/20 flex items-center justify-center mx-auto glow-gold">
+            <Dumbbell className="w-8 h-8 text-gold" strokeWidth={2.5} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            <h1 className="text-3xl font-heading font-bold tracking-tight text-foreground">
               Welcome back
             </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Your AI coach remembers you.
+            <p className="text-sm text-muted-foreground mt-2">
+              Enter your details to access your AI Coach.
             </p>
           </div>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Email */}
-          <div className="space-y-1.5">
-            <label htmlFor="email" className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              Email
+        <form onSubmit={handleSubmit} className="space-y-5 relative z-10">
+          <div className="space-y-2">
+            <label htmlFor="email" className="text-xs font-semibold text-muted-foreground uppercase tracking-widest ml-1">
+              Email Address
             </label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
+            <div className="relative group">
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50 group-focus-within:text-gold transition-colors" />
               <input
                 id="email"
                 type="email"
@@ -68,62 +72,54 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 placeholder="you@example.com"
-                className="w-full bg-secondary border border-border rounded-lg pl-10 pr-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-crimson/50 focus:border-crimson/50 transition-all"
+                className="w-full bg-black/20 border border-white/5 rounded-xl pl-12 pr-4 py-3.5 text-sm text-foreground placeholder:text-muted-foreground/30 focus:outline-none focus:ring-1 focus:ring-gold focus:border-gold transition-all"
               />
             </div>
           </div>
 
-          {/* Password */}
-          <div className="space-y-1.5">
-            <label htmlFor="password" className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              Password
-            </label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
+          <div className="space-y-2">
+            <div className="flex items-center justify-between ml-1">
+              <label htmlFor="password" className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
+                Password
+              </label>
+              <Link href="#" className="text-xs font-medium text-gold hover:text-gold/80 transition-colors">
+                Forgot?
+              </Link>
+            </div>
+            <div className="relative group">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50 group-focus-within:text-gold transition-colors" />
               <input
                 id="password"
-                type={showPassword ? 'text' : 'password'}
+                type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 placeholder="••••••••"
-                className="w-full bg-secondary border border-border rounded-lg pl-10 pr-10 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-crimson/50 focus:border-crimson/50 transition-all"
+                className="w-full bg-black/20 border border-white/5 rounded-xl pl-12 pr-4 py-3.5 text-sm text-foreground placeholder:text-muted-foreground/30 focus:outline-none focus:ring-1 focus:ring-gold focus:border-gold transition-all"
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-muted-foreground transition-colors"
-              >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
             </div>
           </div>
 
-          {/* Submit */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-crimson hover:bg-crimson/90 text-white font-semibold py-2.5 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 mt-2 glow-crimson disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-full bg-gold hover:bg-gold/90 text-gold-foreground font-semibold py-3.5 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 mt-6 glow-gold disabled:opacity-60 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-95"
           >
             {loading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Signing in…
-              </>
+              <Loader2 className="w-5 h-5 animate-spin" />
             ) : (
-              'Sign In'
+              <>Sign In <ArrowRight className="w-4 h-4" /></>
             )}
           </button>
         </form>
 
-        {/* Footer */}
-        <p className="text-center text-sm text-muted-foreground">
-          Don&apos;t have an account?{' '}
-          <Link href="/register" className="text-crimson hover:text-crimson/80 font-medium transition-colors">
-            Create one free
+        <p className="text-center text-sm text-muted-foreground relative z-10">
+          Don't have an account?{' '}
+          <Link href="/register" className="text-foreground hover:text-gold font-medium transition-colors">
+            Create one now
           </Link>
         </p>
-      </div>
+      </motion.div>
     </div>
   )
 }

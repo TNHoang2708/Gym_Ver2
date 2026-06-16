@@ -86,12 +86,18 @@ export default async function OnboardingWelcomePage() {
   const hasInjuries = injuries.length > 0 && !injuries.includes('none')
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 py-12">
-      <div className="max-w-lg w-full space-y-8">
+    <div className="relative min-h-screen bg-background flex flex-col items-center justify-center px-6 py-12">
+      {/* Ambient Background */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div className="absolute top-[20%] right-[-10%] w-[60vw] h-[60vw] bg-gold/5 blur-[120px] rounded-full transform-gpu" />
+        <div className="absolute bottom-[10%] left-[-20%] w-[50vw] h-[50vw] bg-gold/5 blur-[100px] rounded-full transform-gpu" />
+      </div>
+
+      <div className="relative z-10 max-w-lg w-full space-y-8">
         {/* Header */}
         <div className="text-center space-y-4">
-          <div className="w-20 h-20 rounded-3xl bg-crimson/10 border border-crimson/20 flex items-center justify-center mx-auto glow-crimson">
-            <Dumbbell className="w-10 h-10 text-crimson" strokeWidth={2} />
+          <div className="w-20 h-20 rounded-3xl bg-gold/10 border border-gold/20 flex items-center justify-center mx-auto glow-gold">
+            <Dumbbell className="w-10 h-10 text-gold" strokeWidth={2} />
           </div>
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight" style={{ fontFamily: 'var(--font-space-grotesk)' }}>
@@ -141,8 +147,8 @@ export default async function OnboardingWelcomePage() {
         <div className="grid grid-cols-2 gap-3">
           {summaryCards.map((card) => (
             <div key={card.label} className="glass-card rounded-xl p-4 flex items-start gap-3">
-              <div className="w-8 h-8 rounded-lg bg-crimson/10 flex items-center justify-center flex-shrink-0">
-                <card.icon className="w-4 h-4 text-crimson" strokeWidth={2} />
+              <div className="w-8 h-8 rounded-lg bg-gold/10 flex items-center justify-center flex-shrink-0">
+                <card.icon className="w-4 h-4 text-gold" strokeWidth={2} />
               </div>
               <div className="min-w-0">
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -182,7 +188,7 @@ export default async function OnboardingWelcomePage() {
         {/* CTA */}
         <Link
           href="/ai-coach"
-          className="flex items-center justify-center gap-3 w-full bg-crimson hover:bg-crimson/90 text-white font-bold py-4 rounded-2xl text-base transition-all glow-crimson group"
+          className="flex items-center justify-center gap-3 w-full bg-gold hover:bg-gold/90 text-white font-bold py-4 rounded-2xl text-base transition-all glow-gold group"
         >
           Meet Your AI Coach
           <ChevronRight className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" />
@@ -190,7 +196,7 @@ export default async function OnboardingWelcomePage() {
 
         <p className="text-center text-xs text-muted-foreground">
           Your profile is saved. You can edit it anytime in{' '}
-          <Link href="/profile" className="text-crimson hover:underline">Profile</Link>.
+          <Link href="/profile" className="text-gold hover:underline">Profile</Link>.
         </p>
       </div>
     </div>

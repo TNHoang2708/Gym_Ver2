@@ -2,14 +2,14 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { cn } from '@/lib/utils'
-import { Brain, Salad, BookOpen, LayoutDashboard, User } from 'lucide-react'
+import { Home, Sparkles, BookHeart, Utensils, User } from 'lucide-react'
+import { motion } from 'framer-motion'
 
 const navItems = [
-  { href: '/ai-coach', icon: Brain, label: 'Coach' },
-  { href: '/nutrition', icon: Salad, label: 'Nutrition' },
-  { href: '/diary', icon: BookOpen, label: 'Diary' },
-  { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { href: '/dashboard', icon: Home, label: 'Home' },
+  { href: '/ai-coach', icon: Sparkles, label: 'AI Coach' },
+  { href: '/diary', icon: BookHeart, label: 'Diary' },
+  { href: '/nutrition', icon: Utensils, label: 'Nutrition' },
   { href: '/profile', icon: User, label: 'Profile' },
 ]
 
@@ -17,36 +17,35 @@ export function BottomNav() {
   const pathname = usePathname()
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-sidebar border-t border-sidebar-border">
-      <div className="flex items-center justify-around px-2 py-2 safe-area-pb">
+    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 px-4 pb-6 pt-2">
+      <nav className="glass-card flex items-center justify-around h-16 rounded-full px-2 relative mx-auto max-w-sm">
         {navItems.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+          const isActive = pathname.startsWith(item.href)
+          const Icon = item.icon
+
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={cn(
-                'flex flex-col items-center gap-1 px-3 py-1.5 rounded-lg transition-all duration-150 min-w-[52px]',
-                isActive ? 'text-crimson' : 'text-muted-foreground hover:text-foreground'
-              )}
+              className={`relative flex flex-col items-center justify-center w-14 h-12 rounded-full z-10 transition-colors duration-300 ${
+                isActive ? 'text-gold-foreground' : 'text-muted-foreground hover:text-foreground'
+              }`}
             >
-              <item.icon
-                className={cn(
-                  'w-5 h-5 transition-all duration-150',
-                  isActive && 'drop-shadow-[0_0_6px_rgba(225,29,72,0.6)]'
-                )}
-                strokeWidth={isActive ? 2.5 : 2}
-              />
-              <span className={cn(
-                'text-[10px] font-medium transition-all',
-                isActive ? 'text-crimson' : 'text-muted-foreground'
-              )}>
+              {isActive && (
+                <motion.div
+                  layoutId="bottom-nav-pill"
+                  className="absolute inset-0 bg-gold rounded-full"
+                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                />
+              )}
+              <Icon className="w-5 h-5 relative z-20" strokeWidth={isActive ? 2.5 : 2} />
+              <span className={`text-[10px] font-medium mt-1 relative z-20 transition-opacity duration-300 ${isActive ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'}`}>
                 {item.label}
               </span>
             </Link>
           )
         })}
-      </div>
-    </nav>
+      </nav>
+    </div>
   )
 }

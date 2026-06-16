@@ -42,6 +42,17 @@ export async function proxy(request: NextRequest) {
     (route) => pathname === route || pathname.startsWith('/api/')
   )
 
+  // Admin Route Protection
+  if (pathname.startsWith('/admin')) {
+    if (!user) {
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
+    const isAdmin = user.email === 'admin@gymplanner.ai' || user.email?.includes('admin')
+    if (!isAdmin) {
+      return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
+  }
+
   // Redirect unauthenticated users to login
   if (!user && !isPublicRoute) {
     const loginUrl = request.nextUrl.clone()

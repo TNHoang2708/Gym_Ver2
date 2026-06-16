@@ -1,12 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Brain, Flame, Target, Dumbbell, TrendingUp } from 'lucide-react'
-import Link from 'next/link'
-import type { FoodLog, HardMemory, NutritionGoals, SoftMemory, WorkoutLog, WorkoutSchedule } from '@/types'
-import { calculateNutritionGoals } from '@/lib/nutrition'
-import { cn } from '@/lib/utils'
+import { Activity, Flame, Dumbbell, Target, Sparkles, Trophy, CalendarCheck, Watch, Moon, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
+import { syncHealthData } from '@/lib/health/sync'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   BarChart,
   Bar,
@@ -16,260 +15,370 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts'
+import type { UserMemory, DailyNutritionSummary, WorkoutLog, WorkoutSchedule } from '@/types'
 
-const GOAL_LABELS: Record<string, string> = {
-  muscle_gain: 'Build Muscle', fat_loss: 'Lose Fat',
-  strength: 'Get Stronger', general_health: 'General Health',
+interface DashboardData {
+  memory: UserMemory | null
+  nutrition: DailyNutritionSummary | null
+  workoutLogs: WorkoutLog[]
+  schedule: WorkoutSchedule | null
+  streak: number
+  insight: string
 }
 
 export default function DashboardPage() {
-  const supabase = createClient()
-
+  const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [goals, setGoals] = useState<NutritionGoals | null>(null)
-  const [softMemory, setSoftMemory] = useState<SoftMemory | null>(null)
-  const [streak, setStreak] = useState(0)
-  const [activeSchedule, setActiveSchedule] = useState<WorkoutSchedule | null>(null)
-  const [weeklyData, setWeeklyData] = useState<Array<{
-    date: string
-    calories: number
-    protein: number
-    goalCalories: number
-    goalProtein: number
-  }>>([])
+  const [syncingHealth, setSyncingHealth] = useState(false)
 
   useEffect(() => {
-    async function load() {
+    async function loadData() {
+      const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      // Load user memory
-      const { data: memory } = await supabase
-        .from('user_memory')
-        .select('hard_memory, soft_memory')
-        .eq('user_id', user.id)
-        .single()
+      // Parallel data fetching
+      const [
+        { data: memData },
+        { data: foodLogs },
+        { data: workoutLogs },
+        { data: schedules }
+      ] = await Promise.all([
+        supabase.from('user_memory').select('*').eq('user_id', user.id).single(),
+        supabase.from('food_logs').select('*').eq('user_id', user.id).eq('log_date', new Date().toISOString().split('T')[0]),
+        supabase.from('workout_logs').select('*').eq('user_id', user.id).order('log_date', { ascending: false }),
+        supabase.from('workout_schedules').select('*').eq('user_id', user.id).eq('active', true).order('created_at', { ascending: false }).limit(1)
+      ])
 
-      if (memory) {
-        const hard = (memory.hard_memory ?? {}) as HardMemory
-        const soft = (memory.soft_memory ?? {}) as SoftMemory
-        setSoftMemory(soft)
-        const nutritionGoals = calculateNutritionGoals(hard, soft)
-        setGoals(nutritionGoals)
+      const memory = memData as UserMemory | null
+      const schedule = (schedules && schedules.length > 0) ? schedules[0].schedule as WorkoutSchedule : null
 
-        // Build last 7 days of nutrition data
-        const last7Days = Array.from({ length: 7 }, (_, i) => {
-          const d = new Date()
-          d.setDate(d.getDate() - 6 + i)
-          return d.toISOString().split('T')[0]
-        })
-
-        const { data: foodData } = await supabase
-          .from('food_logs')
-          .select('log_date, calories, protein_g')
-          .eq('user_id', user.id)
-          .in('log_date', last7Days)
-
-        const dailyMap: Record<string, { calories: number; protein: number }> = {}
-        for (const log of foodData ?? []) {
-          const fd = log as FoodLog
-          if (!dailyMap[fd.log_date]) dailyMap[fd.log_date] = { calories: 0, protein: 0 }
-          dailyMap[fd.log_date].calories += fd.calories
-          dailyMap[fd.log_date].protein += fd.protein_g
+      // Calculate Nutrition
+      let nutrition: DailyNutritionSummary | null = null
+      if (foodLogs) {
+        const totals = foodLogs.reduce(
+          (acc, log) => ({
+            calories: acc.calories + (log.calories || 0),
+            protein_g: acc.protein_g + (log.protein_g || 0),
+            carbs_g: acc.carbs_g + (log.carbs_g || 0),
+            fat_g: acc.fat_g + (log.fat_g || 0),
+          }),
+          { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 }
+        )
+        nutrition = {
+          ...totals,
+          goal_calories: 2000, // Ideally pulled from memory/lib
+          goal_protein_g: 150,
+          goal_carbs_g: 200,
+          goal_fat_g: 65,
         }
-
-        setWeeklyData(last7Days.map((date) => ({
-          date: new Date(date).toLocaleDateString('en-US', { weekday: 'short' }),
-          calories: Math.round(dailyMap[date]?.calories ?? 0),
-          protein: Math.round(dailyMap[date]?.protein ?? 0),
-          goalCalories: nutritionGoals.goal_calories,
-          goalProtein: nutritionGoals.goal_protein_g,
-        })))
       }
 
-      // Load active schedule
-      const { data: scheduleData } = await supabase
-        .from('workout_schedules')
-        .select('schedule')
-        .eq('user_id', user.id)
-        .eq('active', true)
-        .single()
-
-      if (scheduleData?.schedule) {
-        setActiveSchedule(scheduleData.schedule as WorkoutSchedule)
+      // Calculate Streak
+      let currentStreak = 0
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      
+      const logs = workoutLogs || []
+      let checkDate = new Date(today)
+      
+      // If no workout today, check if there was one yesterday to keep streak alive
+      const hasWorkoutToday = logs.some(l => l.log_date === checkDate.toISOString().split('T')[0] && l.trained)
+      if (!hasWorkoutToday) {
+        checkDate.setDate(checkDate.getDate() - 1)
       }
 
-      // Calculate streak from workout_logs
-      const today = new Date().toISOString().split('T')[0]
-      const { data: workoutLogs } = await supabase
-        .from('workout_logs')
-        .select('log_date, trained')
-        .eq('user_id', user.id)
-        .order('log_date', { ascending: false })
-        .limit(30)
-
-      let streakCount = 0
-      const logsMap: Record<string, boolean> = {}
-      for (const log of workoutLogs ?? []) {
-        const wl = log as WorkoutLog
-        logsMap[wl.log_date] = wl.trained
-      }
-
-      let checkDate = new Date()
-      // If today isn't marked, start from yesterday for streak
-      if (!logsMap[today]) checkDate.setDate(checkDate.getDate() - 1)
-
-      for (let i = 0; i < 30; i++) {
+      for (let i = 0; i < 365; i++) {
         const dateStr = checkDate.toISOString().split('T')[0]
-        if (logsMap[dateStr]) {
-          streakCount++
+        const log = logs.find(l => l.log_date === dateStr)
+        if (log && log.trained) {
+          currentStreak++
           checkDate.setDate(checkDate.getDate() - 1)
         } else {
           break
         }
       }
-      setStreak(streakCount)
+
+      // Fetch dynamic insight
+      let insight = "Stay focused and trust the process. Today is another opportunity to get closer to your goals."
+      try {
+        const res = await fetch('/api/insight', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nutrition, workoutStreak: currentStreak })
+        })
+        if (res.ok) {
+          const json = await res.json()
+          if (json.insight) insight = json.insight
+        }
+      } catch (err) {
+        console.error('Failed to fetch insight:', err)
+      }
+
+      setData({
+        memory,
+        nutrition,
+        workoutLogs: logs,
+        schedule,
+        streak: currentStreak,
+        insight
+      })
       setLoading(false)
     }
-    load()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+
+    loadData()
   }, [])
 
-  if (loading) {
+  if (loading || !data) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-sm text-muted-foreground">Loading dashboard…</div>
+      <div className="flex-1 flex items-center justify-center min-h-[50vh]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-gold/20 border-t-gold rounded-full animate-spin" />
+          <p className="text-muted-foreground font-medium animate-pulse">Initializing Interface...</p>
+        </div>
       </div>
     )
   }
 
-  return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-6">
-      {/* Header */}
-      <h1 className="text-2xl font-extrabold tracking-tight" style={{ fontFamily: 'var(--font-space-grotesk)' }}>
-        Dashboard
-      </h1>
+  const { memory, nutrition, workoutLogs, schedule, streak, insight } = data
 
-      {/* Stats row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="glass-card rounded-xl p-4 text-center">
-          <Flame className="w-5 h-5 text-crimson mx-auto mb-2" />
-          <p className="text-2xl font-extrabold text-crimson">{streak}</p>
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-1">Day Streak</p>
-        </div>
-        <div className="glass-card rounded-xl p-4 text-center">
-          <Target className="w-5 h-5 text-foreground mx-auto mb-2" />
-          <p className="text-sm font-bold text-foreground truncate">
-            {GOAL_LABELS[softMemory?.main_goal ?? ''] ?? '—'}
-          </p>
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-1">Main Goal</p>
-        </div>
-        <div className="glass-card rounded-xl p-4 text-center">
-          <Dumbbell className="w-5 h-5 text-foreground mx-auto mb-2" />
-          <p className="text-2xl font-extrabold text-foreground">
-            {softMemory?.desired_frequency ?? '—'}
-          </p>
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-1">Days / Week</p>
-        </div>
-        <div className="glass-card rounded-xl p-4 text-center">
-          <Brain className="w-5 h-5 text-crimson mx-auto mb-2" />
-          <p className="text-sm font-bold text-foreground capitalize">
-            {softMemory?.experience_level ?? '—'}
-          </p>
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-1">Level</p>
-        </div>
+  async function handleHealthSync() {
+    setSyncingHealth(true)
+    try {
+      const hd = await syncHealthData()
+      if (memory && memory.soft_memory) {
+        setData({
+          ...data!,
+          memory: {
+            ...memory,
+            soft_memory: {
+              ...memory.soft_memory,
+              latest_steps: hd.steps,
+              latest_sleep_hours: hd.sleepHours
+            }
+          }
+        })
+      }
+      toast.success('Device Sync Complete')
+    } catch (err) {
+      toast.error('Failed to sync health data')
+    }
+    setSyncingHealth(false)
+  }
+
+  // Chart Data Preparation (Last 7 Days)
+  const chartData = []
+  const today = new Date()
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today)
+    d.setDate(d.getDate() - i)
+    const dateStr = d.toISOString().split('T')[0]
+    const shortName = d.toLocaleDateString('en-US', { weekday: 'short' })
+    const log = workoutLogs.find(l => l.log_date === dateStr)
+    
+    // We assume an active session is 60 minutes for the chart, rest is 0
+    chartData.push({
+      name: shortName,
+      active: log?.trained ? 60 : 0,
+      rest: log?.trained ? 0 : 60
+    })
+  }
+
+  const metrics = [
+    { label: 'Calories', value: nutrition?.calories || 0, goal: nutrition?.goal_calories || 2000, icon: Flame, color: 'text-orange-500' },
+    { label: 'Protein', value: `${nutrition?.protein_g || 0}g`, goal: `${nutrition?.goal_protein_g || 150}g`, icon: Dumbbell, color: 'text-gold' },
+    { label: 'Active Mood', value: memory?.emotional_memory?.current?.mood || 'Neutral', goal: 'Status', icon: Activity, color: 'text-green-500' },
+    { label: 'Workout Streak', value: `${streak}`, goal: 'Days', icon: Trophy, color: 'text-yellow-400' },
+  ]
+
+  // Weekly Totals
+  const workoutsThisWeek = chartData.filter(d => d.active > 0).length
+  const workoutsPlanned = schedule ? schedule.frequency : 0
+
+  return (
+    <div className="relative min-h-screen">
+      {/* Ambient Background */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-gold/5 blur-[120px] rounded-full transform-gpu" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40vw] h-[40vw] bg-gold/5 blur-[100px] rounded-full transform-gpu" />
       </div>
 
-      {/* Weekly calories chart */}
-      {weeklyData.length > 0 && (
-        <div className="glass-card rounded-2xl p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <TrendingUp className="w-4 h-4 text-crimson" />
-            <h2 className="text-sm font-bold">Weekly Calories</h2>
-            <div className="ml-auto flex items-center gap-3 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-crimson inline-block" /> Actual</span>
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-border inline-block" /> Goal</span>
+      <div className="relative z-10 max-w-6xl mx-auto space-y-8 pb-20 px-4 sm:px-6 lg:px-8 pt-8">
+        {/* Header */}
+        <motion.div 
+          className="flex items-end justify-between"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <div>
+            <h1 className="text-3xl md:text-4xl font-heading font-bold text-foreground tracking-tight">Overview</h1>
+            <p className="text-muted-foreground mt-1 text-sm md:text-base">Here is your daily snapshot.</p>
+          </div>
+        </motion.div>
+
+        {/* Metrics Grid */}
+        <motion.div 
+          className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          {metrics.map((metric, i) => (
+            <div key={i} className="glass-card p-5 md:p-6 rounded-[2rem] relative overflow-hidden group hover:-translate-y-1 transition-all duration-300">
+              <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-15 transition-opacity duration-500">
+                <metric.icon className={`w-20 h-20 ${metric.color}`} />
+              </div>
+              <div className="relative z-10">
+                <p className="text-[10px] md:text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-2">
+                  <metric.icon className={`w-4 h-4 ${metric.color}`} />
+                  {metric.label}
+                </p>
+                <h3 className="text-2xl md:text-3xl font-heading font-bold text-gradient-gold mb-1">{metric.value}</h3>
+                <p className="text-xs md:text-sm text-muted-foreground/70">/ {metric.goal}</p>
+              </div>
+            </div>
+          ))}
+        </motion.div>
+
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Main Chart */}
+          <motion.div 
+            className="lg:col-span-2 glass-card p-6 md:p-8 rounded-[2rem]"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-xl font-heading font-bold">Activity Pulse</h2>
+              <select className="bg-transparent text-sm text-muted-foreground outline-none border-b border-border pb-1">
+                <option>Past 7 Days</option>
+              </select>
+            </div>
+            <div className="h-[300px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#888', fontSize: 12 }} dy={10} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#888', fontSize: 12 }} />
+                  <Tooltip 
+                    cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                    contentStyle={{ backgroundColor: '#111', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '1rem', color: '#fff' }}
+                  />
+                  <Bar dataKey="active" stackId="a" fill="#D4AF6A" radius={[0, 0, 4, 4]} />
+                  <Bar dataKey="rest" stackId="a" fill="#222" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            
+            <div className="mt-6 flex items-center justify-between pt-6 border-t border-white/5">
+               <div>
+                  <p className="text-sm text-muted-foreground">Workouts this week</p>
+                  <p className="text-xl font-bold text-foreground">{workoutsThisWeek} <span className="text-sm font-normal text-muted-foreground">/ {workoutsPlanned || '-'} planned</span></p>
+               </div>
+               {schedule && (
+                 <div className="text-right">
+                    <p className="text-sm text-muted-foreground">Active Plan</p>
+                    <p className="text-sm font-semibold text-gold flex items-center gap-1 justify-end"><CalendarCheck className="w-4 h-4"/> {schedule.name}</p>
+                 </div>
+               )}
+            </div>
+          </motion.div>
+
+          {/* AI Insight Card */}
+          <motion.div 
+            className="glass-card p-6 md:p-8 rounded-[2rem] flex flex-col"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <div className="w-12 h-12 rounded-full bg-gold/10 flex items-center justify-center mb-6 glow-gold">
+              <Sparkles className="w-6 h-6 text-gold" />
+            </div>
+            <h2 className="text-xl font-heading font-bold mb-4">Coach Insights</h2>
+            
+            <div className="flex-1 space-y-4">
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/5">
+                <p className="text-sm text-foreground leading-relaxed italic">
+                  "{insight}"
+                </p>
+              </div>
+              
+              <div className="pt-4">
+                 <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Calorie Balance</h3>
+                 <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">In (Food)</span>
+                      <span className="font-medium text-foreground">{nutrition?.calories || 0} kcal</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Out (Est.)</span>
+                      <span className="font-medium text-foreground">{(nutrition?.goal_calories || 2000) + (workoutsThisWeek > 0 ? 300 : 0)} kcal</span>
+                    </div>
+                 </div>
+              </div>
+
+              {memory?.soft_memory?.notes && memory.soft_memory.notes.length > 0 && (
+                <div className="pt-4 border-t border-white/5 mt-4">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Recent Context</p>
+                  <ul className="space-y-2">
+                    {memory.soft_memory.notes.slice(-3).map((note, i) => (
+                      <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
+                        <span className="text-gold mt-1">•</span> {note}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </div>
+
+        {/* ── Wearable Telemetry ── */}
+        <motion.div
+          className="glass-card p-6 md:p-8 rounded-[2rem]"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+        >
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-xl font-heading font-bold flex items-center gap-2">
+              <Watch className="w-5 h-5 text-blue-400" /> Wearable Telemetry
+            </h2>
+            <button 
+              onClick={handleHealthSync}
+              disabled={syncingHealth}
+              className="px-4 py-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-xl text-sm font-semibold transition-colors flex items-center gap-2"
+            >
+              {syncingHealth ? <Loader2 className="w-4 h-4 animate-spin" /> : <Activity className="w-4 h-4" />}
+              {syncingHealth ? 'Syncing...' : 'Sync Device'}
+            </button>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="bg-black/20 p-6 rounded-2xl border border-white/5 relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-4 opacity-5">
+                <Activity className="w-24 h-24 text-blue-400" />
+              </div>
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Daily Steps</h3>
+              <p className="text-3xl font-bold text-foreground">
+                {memory?.soft_memory?.latest_steps?.toLocaleString() || '---'}
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">/ 10,000 goal</p>
+            </div>
+            <div className="bg-black/20 p-6 rounded-2xl border border-white/5 relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-4 opacity-5">
+                <Moon className="w-24 h-24 text-indigo-400" />
+              </div>
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Sleep Data</h3>
+              <p className="text-3xl font-bold text-foreground">
+                {memory?.soft_memory?.latest_sleep_hours || '---'}<span className="text-lg font-normal text-muted-foreground"> hrs</span>
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">Last night</p>
             </div>
           </div>
-          <div className="h-44">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={weeklyData} barGap={4}>
-                <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.18 0 0)" vertical={false} />
-                <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'oklch(0.55 0 0)' }} tickLine={false} axisLine={false} />
-                <YAxis tick={{ fontSize: 10, fill: 'oklch(0.55 0 0)' }} tickLine={false} axisLine={false} width={40} />
-                <Tooltip
-                  contentStyle={{ background: 'oklch(0.1 0 0)', border: '1px solid oklch(0.18 0 0)', borderRadius: '8px', fontSize: '12px', color: 'oklch(0.96 0 0)' }}
-                  formatter={(v) => [`${v} kcal`]}
-                />
-                <Bar dataKey="goalCalories" name="Goal" fill="oklch(0.18 0 0)" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="calories" name="Actual" fill="#e11d48" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      )}
+        </motion.div>
 
-      {/* Weekly protein chart */}
-      {weeklyData.length > 0 && (
-        <div className="glass-card rounded-2xl p-5">
-          <h2 className="text-sm font-bold mb-4">Weekly Protein (g)</h2>
-          <div className="h-40">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={weeklyData} barGap={4}>
-                <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.18 0 0)" vertical={false} />
-                <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'oklch(0.55 0 0)' }} tickLine={false} axisLine={false} />
-                <YAxis tick={{ fontSize: 10, fill: 'oklch(0.55 0 0)' }} tickLine={false} axisLine={false} width={30} />
-                <Tooltip
-                  contentStyle={{ background: 'oklch(0.1 0 0)', border: '1px solid oklch(0.18 0 0)', borderRadius: '8px', fontSize: '12px', color: 'oklch(0.96 0 0)' }}
-                  formatter={(v) => [`${v}g`]}
-                />
-                <Bar dataKey="goalProtein" name="Goal" fill="oklch(0.18 0 0)" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="protein" name="Actual" fill="#e11d48" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      )}
-
-      {/* Active schedule summary */}
-      {activeSchedule ? (
-        <div className="glass-card rounded-2xl p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <Dumbbell className="w-4 h-4 text-crimson" />
-            <h2 className="text-sm font-bold">Active Program</h2>
-            <span className="ml-auto text-xs text-crimson">{activeSchedule.frequency}x/week</span>
-          </div>
-          <p className="font-semibold text-foreground mb-3">{activeSchedule.name}</p>
-          <div className="grid grid-cols-7 gap-1">
-            {activeSchedule.days.map((day, i) => {
-              const isRest = !day.exercises || day.exercises.length === 0
-              return (
-                <div
-                  key={i}
-                  className={cn(
-                    'rounded-lg p-1.5 text-center',
-                    isRest ? 'bg-secondary' : 'bg-crimson/10 border border-crimson/20'
-                  )}
-                >
-                  <p className="text-[9px] font-bold truncate" title={day.day}>
-                    {day.day.slice(0, 3)}
-                  </p>
-                  {!isRest && <span className="text-[8px] text-crimson">•</span>}
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      ) : (
-        <div className="glass-card rounded-2xl p-5 text-center">
-          <Dumbbell className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
-          <p className="text-sm font-semibold text-foreground mb-1">No Active Program</p>
-          <p className="text-xs text-muted-foreground mb-3">Ask your AI Coach to create a workout plan</p>
-          <Link href="/ai-coach" className="text-xs text-crimson hover:underline">
-            Open AI Coach →
-          </Link>
-        </div>
-      )}
+      </div>
     </div>
   )
 }

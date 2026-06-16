@@ -11,6 +11,8 @@ export interface HardMemory {
   weight_kg?: number
   body_type?: 'slim' | 'average' | 'overweight' | 'muscular'
   injuries?: string[]
+  dietary_lifestyles?: string[]
+  allergies?: string[]
 }
 
 export interface SoftMemory {
@@ -85,6 +87,17 @@ export interface FoodLog {
   created_at: string
 }
 
+export interface FoodFavourite {
+  id: string
+  user_id: string
+  name: string
+  calories: number
+  protein_g: number
+  carbs_g: number
+  fat_g: number
+  created_at: string
+}
+
 export interface DailyNutritionSummary {
   calories: number
   protein_g: number
@@ -142,6 +155,13 @@ export interface WeightLog {
   user_id: string
   log_date: string
   weight_kg: number
+  body_fat_percent?: number
+  waist_cm?: number
+  chest_cm?: number
+  arms_cm?: number
+  neck_cm?: number
+  hips_cm?: number
+  photo_url?: string
   created_at: string
 }
 

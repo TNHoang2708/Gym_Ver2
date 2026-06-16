@@ -12,7 +12,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <Sidebar />
 
       {/* Main content — offset by sidebar on desktop */}
-      <main className="lg:ml-60 min-h-screen pb-20 lg:pb-0">
+      <main className="md:ml-64 min-h-screen pb-20 md:pb-0">
         {children}
       </main>
 

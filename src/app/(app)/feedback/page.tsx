@@ -70,8 +70,8 @@ export default function FeedbackPage() {
     <div className="max-w-lg mx-auto px-4 sm:px-6 py-8 space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="w-12 h-12 rounded-2xl bg-crimson/10 border border-crimson/20 flex items-center justify-center">
-          <MessageSquare className="w-6 h-6 text-crimson" />
+        <div className="w-12 h-12 rounded-2xl bg-gold/10 border border-gold/20 flex items-center justify-center">
+          <MessageSquare className="w-6 h-6 text-gold" />
         </div>
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight" style={{ fontFamily: 'var(--font-space-grotesk)' }}>
@@ -126,7 +126,7 @@ export default function FeedbackPage() {
                 className={cn(
                   'text-xs px-3 py-1.5 rounded-full border transition-all',
                   message === prompt
-                    ? 'bg-crimson/10 border-crimson/30 text-crimson'
+                    ? 'bg-gold/10 border-gold/30 text-gold'
                     : 'border-border text-muted-foreground hover:border-border/60'
                 )}
               >
@@ -146,7 +146,7 @@ export default function FeedbackPage() {
             onChange={(e) => setMessage(e.target.value)}
             placeholder="Tell us what you love or what could be better…"
             rows={4}
-            className="w-full bg-secondary border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-crimson/40 focus:border-crimson/30 resize-none transition-all"
+            className="w-full bg-secondary border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold/30 resize-none transition-all"
           />
         </div>
 
@@ -157,7 +157,7 @@ export default function FeedbackPage() {
           className={cn(
             'w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold transition-all',
             rating > 0 && !submitting
-              ? 'bg-crimson hover:bg-crimson/90 text-white glow-crimson'
+              ? 'bg-gold hover:bg-gold/90 text-white glow-gold'
               : 'bg-secondary text-muted-foreground cursor-not-allowed'
           )}
         >

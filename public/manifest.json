@@ -1,0 +1,16 @@
+{
+  "name": "Gym Planner AI",
+  "short_name": "Gym AI",
+  "description": "Your AI Fitness Coach That Actually Remembers You",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#D4AF6A",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ]
+}

@@ -1,236 +1,181 @@
-import Link from 'next/link'
-import { Dumbbell, Brain, Heart, TrendingUp, Zap, Shield, ChevronRight } from 'lucide-react'
-import type { Metadata } from 'next'
+'use client'
 
-export const metadata: Metadata = {
-  title: 'Gym Planner AI — The Coach That Remembers You',
-  description: 'An AI fitness coach with real memory. It learns your goals, mood, injuries, and lifestyle — and talks to you like a real friend, not a chatbot.',
+import Link from 'next/link'
+import { ArrowRight, Download, Apple, Play, Dumbbell } from 'lucide-react'
+import { motion } from 'framer-motion'
+import Image from 'next/image'
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
 }
 
-const features = [
-  {
-    icon: Brain,
-    title: 'Real Memory',
-    description: 'Remembers your injuries, goals, mood history, and every conversation — forever.',
-  },
-  {
-    icon: Heart,
-    title: 'Emotional Intelligence',
-    description: 'Knows when you need support vs. coaching. Adapts its tone to your state of mind.',
-  },
-  {
-    icon: TrendingUp,
-    title: 'Smart Nutrition',
-    description: 'Calculates your exact calorie and macro targets. Tracks every meal.',
-  },
-  {
-    icon: Zap,
-    title: 'Custom Workout Plans',
-    description: 'AI generates weekly programs based on your level, location, and schedule.',
-  },
-  {
-    icon: Shield,
-    title: 'Injury Aware',
-    description: 'Never suggests exercises that conflict with your injuries or medical conditions.',
-  },
-  {
-    icon: Dumbbell,
-    title: 'Progress Tracking',
-    description: 'Streaks, charts, diary. Every training day logged and visualized.',
-  },
-]
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 100 } }
+}
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-background">
-      {/* Nav */}
-      <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-crimson flex items-center justify-center glow-crimson">
-              <Dumbbell className="w-4 h-4 text-white" strokeWidth={2.5} />
+    <div className="min-h-screen flex flex-col font-sans bg-background text-foreground relative overflow-hidden">
+      
+      {/* Background ambient glow */}
+      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gold/5 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-[800px] h-[500px] bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
+
+      {/* Top Navigation */}
+      <nav className="w-full px-6 py-5 flex items-center justify-between max-w-[1400px] mx-auto z-10 relative">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gold/10 border border-gold/20 flex items-center justify-center glow-gold">
+            <Dumbbell className="w-5 h-5 text-gold" strokeWidth={2.5} />
+          </div>
+          <span className="font-heading font-bold text-xl tracking-tight text-foreground">
+            Gym<span className="text-gold">AI</span>
+          </span>
+        </div>
+
+        <div className="hidden lg:flex items-center gap-10 text-[13px] font-medium tracking-wide">
+          <Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">Features</Link>
+          <Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">AI Coach</Link>
+          <Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">Success Stories</Link>
+          <Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">Pricing</Link>
+          <Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">FAQ</Link>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="hidden sm:flex items-center bg-white/5 rounded-full p-1 pl-4 shadow-sm border border-white/5 backdrop-blur-sm">
+            <span className="text-xs font-semibold mr-3 text-muted-foreground">Download App</span>
+            <button className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors">
+              <Apple className="w-4 h-4 text-foreground" />
+            </button>
+            <button className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors ml-1">
+              <Play className="w-4 h-4 ml-0.5 text-foreground" />
+            </button>
+            <button className="w-8 h-8 rounded-full bg-gold text-gold-foreground flex items-center justify-center hover:bg-gold/90 transition-colors ml-1">
+              <Download className="w-4 h-4" />
+            </button>
+          </div>
+          <Link 
+            href="/register" 
+            className="flex items-center gap-2 text-sm font-semibold bg-gold text-gold-foreground px-5 py-2.5 rounded-full hover:bg-gold/90 transition-colors glow-gold"
+          >
+            Start Training <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+      </nav>
+
+      {/* Hero Section */}
+      <main className="flex-1 w-full max-w-[1400px] mx-auto px-6 grid lg:grid-cols-2 gap-12 lg:gap-8 items-center mt-8 lg:mt-0 relative z-10">
+        
+        {/* Left Content */}
+        <motion.div 
+          className="max-w-xl pr-4"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          <motion.h1 variants={itemVariants} className="text-[3.5rem] md:text-[5rem] lg:text-[5.5rem] leading-[1.05] font-medium tracking-tight mb-6">
+            Transform <span className="font-serif italic text-gold">your body</span> and mind
+          </motion.h1>
+
+          <motion.p variants={itemVariants} className="text-muted-foreground text-lg leading-relaxed mb-10 max-w-md">
+            Build strength, find balance, and unlock your full potential with guided fitness and mindful living.
+          </motion.p>
+
+          <motion.div variants={itemVariants} className="flex items-center gap-4">
+            <Link 
+              href="/register" 
+              className="px-8 py-3.5 bg-gold text-gold-foreground rounded-full font-medium transition-transform hover:scale-105 active:scale-95 glow-gold"
+            >
+              Join Member
+            </Link>
+            <Link 
+              href="/login" 
+              className="px-8 py-3.5 border border-white/20 text-foreground bg-white/5 backdrop-blur-sm rounded-full font-medium transition-all hover:bg-white/10 active:scale-95"
+            >
+              Start for Free
+            </Link>
+          </motion.div>
+        </motion.div>
+
+        {/* Right Content / Image */}
+        <motion.div 
+          className="relative w-full aspect-[4/3] lg:aspect-auto lg:h-[650px] rounded-[2rem] shadow-[0_0_60px_rgba(212,175,106,0.15)] border border-gold/20 flex items-center justify-center group"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
+        >
+          {/* Inner wrapper for image to allow floating elements outside the overflow hidden */}
+          <div className="absolute inset-2 md:inset-4 rounded-3xl overflow-hidden bg-black">
+            <Image 
+              src="/hero_bw.png" 
+              alt="Professional bodybuilder" 
+              fill 
+              sizes="(max-width: 768px) 100vw, 50vw"
+              className="object-cover opacity-80 group-hover:scale-105 group-hover:opacity-100 transition-all duration-700"
+              priority
+            />
+            {/* Duotone Gold Gradient Overlay to tie the B&W image into the color scheme */}
+            <div className="absolute inset-0 bg-gradient-to-tr from-background via-transparent to-gold/10 mix-blend-overlay pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-background/20 to-transparent pointer-events-none" />
+          </div>
+
+          {/* Floating Badge - Top Right */}
+          <motion.div 
+            className="absolute -top-4 -right-4 md:top-8 md:-right-6 glass-card border border-gold/30 px-5 py-3 rounded-2xl flex items-center gap-3 z-20 shadow-2xl glow-gold"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 1, type: "spring", stiffness: 100 }}
+          >
+            <div className="w-2 h-2 rounded-full bg-gold animate-pulse" />
+            <span className="text-sm font-bold tracking-wider uppercase text-gold">Pro AI Coach</span>
+          </motion.div>
+
+          {/* Floating Badge - Bottom Left */}
+          <motion.div 
+            className="absolute -bottom-4 -left-4 md:bottom-12 md:-left-8 glass-card border border-white/10 p-4 rounded-3xl flex items-center gap-4 z-20 shadow-2xl backdrop-blur-xl bg-black/60"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 1.2, type: "spring", stiffness: 100 }}
+          >
+            <div className="flex -space-x-3">
+              <div className="w-10 h-10 rounded-full border-2 border-background bg-gold/20 flex items-center justify-center text-xs font-bold text-gold">AI</div>
+              <div className="w-10 h-10 rounded-full border-2 border-background bg-white/10 flex items-center justify-center text-xs font-bold text-white">PRO</div>
             </div>
-            <span className="font-bold text-foreground" style={{ fontFamily: 'var(--font-space-grotesk)' }}>
-              Gym Planner AI
-            </span>
-          </div>
-          <div className="flex items-center gap-3">
-            <Link
-              href="/login"
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-4 py-2"
-            >
-              Sign In
-            </Link>
-            <Link
-              href="/register"
-              className="text-sm font-semibold bg-crimson hover:bg-crimson/90 text-white px-4 py-2 rounded-lg transition-all glow-crimson"
-            >
-              Get Started Free
-            </Link>
-          </div>
-        </div>
-      </header>
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-widest font-semibold">Trained by</p>
+              <p className="font-heading font-bold text-lg text-foreground mt-0.5">Elite Algorithms</p>
+            </div>
+          </motion.div>
+        </motion.div>
+      </main>
 
-      {/* Hero */}
-      <section className="pt-32 pb-20 px-4 sm:px-6 text-center">
-        <div className="max-w-4xl mx-auto">
-          <div className="inline-flex items-center gap-2 bg-crimson/10 border border-crimson/20 rounded-full px-4 py-1.5 mb-8">
-            <Brain className="w-3.5 h-3.5 text-crimson" />
-            <span className="text-xs font-semibold text-crimson uppercase tracking-wider">Powered by Gemini AI</span>
+      {/* Clients Banner */}
+      <div className="w-full max-w-[1400px] mx-auto px-6 pb-6 mt-16 relative z-10">
+        <motion.div 
+          className="glass-card rounded-[2rem] p-8 md:p-10 w-full"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4, duration: 0.8 }}
+        >
+          <div className="flex flex-col md:flex-row items-center justify-between text-muted-foreground text-sm font-medium mb-8">
+            <p className="uppercase tracking-widest text-xs font-semibold">[ 1000+ Trusted Clients ]</p>
+            <p className="mt-4 md:mt-0 font-mono">@2002-2026</p>
           </div>
 
-          <h1 className="text-5xl sm:text-7xl font-extrabold tracking-tight leading-none mb-6"
-            style={{ fontFamily: 'var(--font-space-grotesk)' }}>
-            The AI Coach<br />
-            <span className="text-gradient-crimson">That Remembers You</span>
-          </h1>
-
-          <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
-            Not a generic chatbot. A fitness coach with real memory — it knows your injuries,
-            goals, mood, and history. Every session feels like picking up where you left off.
-          </p>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              href="/register"
-              className="flex items-center gap-2 bg-crimson hover:bg-crimson/90 text-white font-bold px-8 py-3.5 rounded-xl text-base transition-all glow-crimson w-full sm:w-auto justify-center"
-            >
-              Start Free — No Credit Card
-              <ChevronRight className="w-4 h-4" />
-            </Link>
-            <Link
-              href="/login"
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-4 py-3.5"
-            >
-              Already have an account →
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Memory Layers Visual */}
-      <section className="py-16 px-4 sm:px-6">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold tracking-tight mb-3" style={{ fontFamily: 'var(--font-space-grotesk)' }}>
-              Four Layers of Memory
-            </h2>
-            <p className="text-muted-foreground">
-              Most apps forget you when you close the tab. We don&apos;t.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[
-              {
-                label: 'Hard Memory',
-                color: 'text-crimson',
-                bg: 'bg-crimson/5 border-crimson/15',
-                items: ['Gender & Age', 'Height & Weight', 'Body Type', 'Injuries'],
-              },
-              {
-                label: 'Soft Memory',
-                color: 'text-orange-400',
-                bg: 'bg-orange-400/5 border-orange-400/15',
-                items: ['Goals & Physique', 'Schedule', 'Preferences', 'Conversation notes'],
-              },
-              {
-                label: 'Emotional Memory',
-                color: 'text-pink-400',
-                bg: 'bg-pink-400/5 border-pink-400/15',
-                items: ['Recent mood', 'Decay logic', 'Heavy context', 'Tone adjustment'],
-              },
-              {
-                label: 'Session Meta',
-                color: 'text-violet-400',
-                bg: 'bg-violet-400/5 border-violet-400/15',
-                items: ['Last opened', 'Last topics', 'Streak data', 'Onboarding status'],
-              },
-            ].map((layer) => (
-              <div key={layer.label} className={`rounded-xl border p-5 ${layer.bg}`}>
-                <p className={`text-xs font-bold uppercase tracking-widest mb-3 ${layer.color}`}>
-                  {layer.label}
-                </p>
-                <ul className="space-y-1.5">
-                  {layer.items.map((item) => (
-                    <li key={item} className="text-sm text-muted-foreground flex items-center gap-2">
-                      <span className={`w-1 h-1 rounded-full ${layer.color} bg-current flex-shrink-0`} />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {['Sisyphus', 'Luminous', 'Interlock', 'Biosynthesis', 'Nietzsche', 'Layers'].map((client, i) => (
+              <div key={i} className="bg-white/5 border border-white/5 backdrop-blur-sm rounded-xl h-20 flex items-center justify-center p-4 hover:-translate-y-1 hover:bg-white/10 hover:border-gold/30 transition-all cursor-pointer group">
+                <span className="font-bold text-muted-foreground group-hover:text-gold flex items-center gap-2 transition-colors">
+                  <div className="w-3 h-3 bg-white/20 group-hover:bg-gold rounded-sm rotate-45 transition-colors" />
+                  {client}
+                </span>
               </div>
             ))}
           </div>
-        </div>
-      </section>
+        </motion.div>
+      </div>
 
-      {/* Features Grid */}
-      <section className="py-16 px-4 sm:px-6">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold tracking-tight mb-3" style={{ fontFamily: 'var(--font-space-grotesk)' }}>
-              Everything in One Place
-            </h2>
-            <p className="text-muted-foreground">
-              Coaching, nutrition, tracking — all remembering who you are.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {features.map((feature) => (
-              <div
-                key={feature.title}
-                className="glass-card rounded-xl p-6 group hover:border-crimson/30 transition-all duration-300"
-              >
-                <div className="w-10 h-10 rounded-lg bg-crimson/10 flex items-center justify-center mb-4 group-hover:bg-crimson/20 transition-colors">
-                  <feature.icon className="w-5 h-5 text-crimson" strokeWidth={2} />
-                </div>
-                <h3 className="font-semibold text-foreground mb-2">{feature.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-20 px-4 sm:px-6">
-        <div className="max-w-2xl mx-auto text-center">
-          <div className="glass-card rounded-2xl p-10 border border-crimson/10">
-            <div className="w-16 h-16 rounded-2xl bg-crimson/10 border border-crimson/20 flex items-center justify-center mx-auto mb-6 glow-crimson">
-              <Dumbbell className="w-8 h-8 text-crimson" strokeWidth={2} />
-            </div>
-            <h2 className="text-3xl font-bold tracking-tight mb-4" style={{ fontFamily: 'var(--font-space-grotesk)' }}>
-              Ready to start?
-            </h2>
-            <p className="text-muted-foreground mb-8">
-              Complete a quick 15-step setup and your AI coach will know everything it needs
-              to train you like a pro from day one.
-            </p>
-            <Link
-              href="/register"
-              className="inline-flex items-center gap-2 bg-crimson hover:bg-crimson/90 text-white font-bold px-8 py-3.5 rounded-xl text-base transition-all glow-crimson"
-            >
-              Create Free Account
-              <ChevronRight className="w-4 h-4" />
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="border-t border-border py-8 px-4 sm:px-6">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <Dumbbell className="w-4 h-4 text-crimson" />
-            <span className="text-sm font-semibold text-muted-foreground">Gym Planner AI v2</span>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Built with Gemini AI · Supabase · Next.js
-          </p>
-        </div>
-      </footer>
     </div>
   )
 }

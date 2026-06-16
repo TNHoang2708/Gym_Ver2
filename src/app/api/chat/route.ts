@@ -17,7 +17,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { callGeminiWithFallback, type GeminiMessage } from '@/lib/gemini'
+import { callAIWithFallback, type AIMessage } from '@/lib/ai'
 import { buildSystemPrompt } from '@/lib/system-prompt'
 import { parseAITags, detectConversationMode, getActiveMood } from '@/lib/memory-engine'
 import { calculateNutritionGoals } from '@/lib/nutrition'
@@ -112,13 +112,13 @@ export async function POST(request: NextRequest) {
       .order('created_at', { ascending: false })
       .limit(MAX_CHAT_HISTORY)
 
-    // Convert to Gemini history format (reverse to get chronological order, exclude system)
-    const history: GeminiMessage[] = (chatHistory ?? [])
+    // Convert to OpenAI history format (reverse to get chronological order, exclude system)
+    const history: AIMessage[] = (chatHistory ?? [])
       .filter((m) => m.role === 'user' || m.role === 'assistant')
       .reverse()
       .map((m) => ({
-        role: m.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: m.content }],
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
       }))
 
     // 6. Detect conversation mode
@@ -135,8 +135,8 @@ export async function POST(request: NextRequest) {
       promptMessage = buildGreetingPrompt(memory)
     }
 
-    // 9. Call Gemini with fallback
-    const rawReply = await callGeminiWithFallback({
+    // 9. Call Custom AI with fallback
+    const rawReply = await callAIWithFallback({
       systemPrompt,
       history: isGreeting ? [] : history,
       userMessage: promptMessage,
