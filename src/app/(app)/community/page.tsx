@@ -114,7 +114,7 @@ export default function CommunityFeedPage() {
                     {post.user_id.substring(0, 2).toUpperCase()}
                   </div>
                   <div>
-                    <h4 className="font-bold text-sm">GymAI Athlete</h4>
+                    <h4 className="font-bold text-sm">Forge Athlete</h4>
                     <span className="text-xs text-muted-foreground">
                       {new Date(post.created_at).toLocaleDateString()}
                     </span>

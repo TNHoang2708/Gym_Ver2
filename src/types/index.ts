@@ -1,5 +1,5 @@
 // =====================================================
-// Gym Planner AI v2 — Shared TypeScript Types
+// Forge v2 - Shared TypeScript Types
 // =====================================================
 
 // ---- Memory Layer Types ----

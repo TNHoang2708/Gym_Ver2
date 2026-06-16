@@ -26,11 +26,11 @@ export default function LandingPage() {
       {/* Top Navigation */}
       <nav className="w-full px-6 py-5 flex items-center justify-between max-w-[1400px] mx-auto z-10 relative">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gold/10 border border-gold/20 flex items-center justify-center glow-gold">
-            <Dumbbell className="w-5 h-5 text-gold" strokeWidth={2.5} />
+          <div className="w-10 h-10 rounded-xl bg-black border border-gold/20 flex items-center justify-center overflow-hidden glow-gold">
+            <img src="/logo.png" alt="Forge Logo" className="w-full h-full object-cover" />
           </div>
-          <span className="font-heading font-bold text-xl tracking-tight text-foreground">
-            Gym<span className="text-gold">AI</span>
+          <span className="font-heading font-bold text-xl tracking-tight text-foreground uppercase">
+            Forge
           </span>
         </div>
 

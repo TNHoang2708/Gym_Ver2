@@ -16,8 +16,8 @@ const outfit = Outfit({
 
 export const metadata: Metadata = {
   title: {
-    default: 'Gym Planner AI — Your Personal AI Fitness Coach',
-    template: '%s | Gym Planner AI',
+    default: 'Forge - Your Personal AI Fitness Coach',
+    template: '%s | Forge',
   },
   description:
     'The AI fitness coach that actually remembers you. Get personalized workout plans, nutrition tracking, and real coaching that adapts to your life.',
