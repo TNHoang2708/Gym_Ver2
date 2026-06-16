@@ -26,6 +26,8 @@ export interface SoftMemory {
   motivation?: 'health' | 'appearance' | 'confidence' | 'sport'
   commitment_level?: 'casual' | 'serious' | 'hardcore'
   notes?: string[] // AI-extracted facts from conversations
+  latest_steps?: number
+  latest_sleep_hours?: number
 }
 
 export type MoodType = 'tired' | 'stressed' | 'sad' | 'motivated' | 'happy' | 'neutral'
