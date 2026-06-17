@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { generateObject } from 'ai'
-import { createOpenAI } from '@ai-sdk/openai'
+import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { z } from 'zod'
 
 // Force Node.js runtime for API routes
@@ -16,13 +16,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing target macros' }, { status: 400 })
     }
 
-    const customOpenAI = createOpenAI({
-      baseURL: 'https://apikey.maivangia.com/v1',
-      apiKey: process.env.MAIVANGIA_API_KEY || 'sk-bb8321890b1d3627-7e7dy0-ce9c37a4',
+    const google = createGoogleGenerativeAI({
+      apiKey: process.env.GEMINI_API_KEY,
     })
 
     const { object } = await generateObject({
-      model: customOpenAI('cx/gpt-5.4-mini'),
+      model: google('gemini-2.5-flash'),
       schema: z.object({
         mealName: z.string().describe('The name of the recipe'),
         macros: z.object({

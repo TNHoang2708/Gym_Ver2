@@ -71,13 +71,13 @@ export default function ActiveWorkoutPage() {
       .from('workout_schedules')
       .select('*')
       .eq('user_id', user.id)
-      .eq('status', 'active')
+      .eq('active', true)
       .order('created_at', { ascending: false })
       .limit(1)
 
-    if (schedules && schedules.length > 0 && schedules[0].plan && schedules[0].plan.workouts) {
+    if (schedules && schedules.length > 0 && schedules[0].schedule && schedules[0].schedule.workouts) {
       // Find today's workout (simplified logic: pick the first one that is a workout day)
-      const workoutDay = schedules[0].plan.workouts.find((w: any) => w.type !== 'Rest')
+      const workoutDay = schedules[0].schedule.workouts.find((w: any) => w.type !== 'Rest')
       if (workoutDay) {
         setExercises(workoutDay.exercises)
         // Create a new workout_log to attach these session logs to
@@ -180,7 +180,7 @@ export default function ActiveWorkoutPage() {
     const totalVolume = finalLogs.reduce((sum, log) => sum + (log.weight_kg * log.reps_achieved), 0)
     
     await supabase.from('workout_logs')
-      .update({ volume_kg: totalVolume, duration_minutes: 45, notes: 'Completed full routine' })
+      .update({ volume_kg: totalVolume, duration_minutes: 45, notes: 'Completed full routine', trained: true })
       .eq('id', workoutLogId)
       
     toast.success('Workout Saved!')

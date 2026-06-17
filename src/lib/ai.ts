@@ -1,8 +1,8 @@
-import { createOpenAI } from '@ai-sdk/openai'
+import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { generateText } from 'ai'
 
 /**
- * AI Client for Custom OpenAI Endpoint
+ * AI Client for Google Gemini Endpoint
  */
 
 export interface AIMessage {
@@ -18,16 +18,20 @@ export interface AICallOptions {
   maxOutputTokens?: number
 }
 
-export async function callAIWithFallback(options: AICallOptions): Promise<string> {
+export interface AIResponse {
+  text: string
+  tokensUsed: number
+}
+
+export async function callAIWithFallback(options: AICallOptions): Promise<AIResponse> {
   const { systemPrompt, history, userMessage, temperature = 0.8, maxOutputTokens = 2048 } = options
 
-  // Initialize custom OpenAI provider
-  const customOpenAI = createOpenAI({
-    baseURL: 'https://apikey.maivangia.com/v1',
-    apiKey: process.env.MAIVANGIA_API_KEY || 'sk-bb8321890b1d3627-7e7dy0-ce9c37a4',
+  // Initialize standard Google Generative AI provider
+  const googleAI = createGoogleGenerativeAI({
+    apiKey: process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY || '',
   })
   
-  const model = customOpenAI('cx/gpt-5.4-mini')
+  const model = googleAI('gemini-2.5-flash')
 
   // Build the message array for AI SDK
   const messages: any[] = history.map(m => ({
@@ -39,10 +43,10 @@ export async function callAIWithFallback(options: AICallOptions): Promise<string
     messages.push({ role: 'user', content: userMessage })
   }
   
-  console.log(`[AI] Calling Anthropic model: claude-sonnet-4-5 via custom endpoint...`)
+  console.log(`[AI] Calling Google Gemini model: gemini-2.5-flash...`)
 
   try {
-    const { text } = await generateText({
+    const response = await generateText({
       model: model,
       system: systemPrompt,
       messages: messages,
@@ -50,13 +54,17 @@ export async function callAIWithFallback(options: AICallOptions): Promise<string
       // maxTokens: maxOutputTokens,
     })
 
-    if (!text) {
-      throw new Error('[AI] Empty response from Anthropic endpoint')
+    if (!response.text) {
+      throw new Error('[AI] Empty response from Gemini endpoint')
     }
 
-    return text
+    return {
+      text: response.text,
+      tokensUsed: response.usage?.totalTokens || 0
+    }
   } catch (error: any) {
     console.error(`[AI] Error response:`, error)
-    throw new Error(`[AI] Anthropic API error: ${error.message}`)
+    throw new Error(`[AI] Gemini API error: ${error.message}`)
   }
 }
+

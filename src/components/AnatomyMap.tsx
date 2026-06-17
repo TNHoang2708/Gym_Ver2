@@ -4,122 +4,166 @@ import React from 'react'
 import { motion } from 'framer-motion'
 
 interface AnatomyMapProps {
-  activeMuscles: string[];
+  activeMuscles?: string[]
+  intensity?: 'low' | 'medium' | 'high'
+  className?: string
 }
 
-export default function AnatomyMap({ activeMuscles }: AnatomyMapProps) {
+export default function AnatomyMap({ activeMuscles = [], className = '' }: AnatomyMapProps) {
   const isTarget = (muscle: string) => activeMuscles.includes(muscle)
   
-  // A simplified conceptual SVG representation.
-  // In a full production app, this would be a highly detailed vector graphic.
+  // Helper to determine the fill color for a muscle
+  const getFill = (muscle: string) => {
+    return isTarget(muscle) ? '#EAB308' : '#334155' // Gold for active, slate-700 for inactive
+  }
+  
+  // Glow effect variants for framer-motion
+  const pulseVariant: any = {
+    initial: { opacity: 0.8 },
+    animate: { 
+      opacity: [0.8, 1, 0.8],
+      transition: { repeat: Infinity, duration: 2, ease: "easeInOut" }
+    }
+  }
+
   return (
-    <div className="relative w-full aspect-square max-w-xs mx-auto">
-      <svg viewBox="0 0 200 400" className="w-full h-full drop-shadow-2xl">
-        {/* Head */}
-        <circle cx="100" cy="40" r="20" className="fill-white/10 stroke-white/20 stroke-2" />
+    <div className={`relative flex items-center justify-center w-full max-w-sm mx-auto aspect-[3/4] ${className}`}>
+      {/* A stylized, simplified vector representation of human anatomy */}
+      <svg 
+        viewBox="0 0 200 400" 
+        className="w-full h-full drop-shadow-2xl"
+        fill="none" 
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <defs>
+          <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+          </filter>
+        </defs>
+
+        {/* --- FRONT VIEW --- */}
         
-        {/* Shoulders */}
+        {/* Head & Neck (Inactive Base) */}
+        <path d="M100 20 C85 20, 85 45, 100 50 C115 45, 115 20, 100 20 Z" fill="#1E293B" stroke="#0F172A" strokeWidth="2" />
+        <path d="M92 50 L108 50 L110 65 L90 65 Z" fill="#1E293B" stroke="#0F172A" strokeWidth="2" />
+
+        {/* Shoulders / Deltoids */}
         <motion.path 
-          id="shoulders"
-          d="M 60 70 Q 100 60 140 70 L 140 90 L 60 90 Z"
-          className={`stroke-white/20 stroke-2 transition-colors duration-500 ${isTarget('shoulders') ? 'fill-gold glow-gold' : 'fill-white/5'}`}
-          animate={isTarget('shoulders') ? { opacity: [0.7, 1, 0.7] } : {}}
-          transition={{ repeat: Infinity, duration: 2 }}
+          d="M65 80 C50 80, 45 100, 55 110 C65 100, 75 90, 80 80 Z" 
+          fill={getFill('shoulders')} stroke="#0F172A" strokeWidth="2"
+          variants={isTarget('shoulders') ? pulseVariant : {}}
+          initial="initial" animate="animate" filter={isTarget('shoulders') ? 'url(#glow)' : ''}
         />
-        
-        {/* Chest */}
         <motion.path 
-          id="chest"
-          d="M 70 90 L 130 90 L 120 130 Q 100 140 80 130 Z"
-          className={`stroke-white/20 stroke-2 transition-colors duration-500 ${isTarget('chest') ? 'fill-gold glow-gold' : 'fill-white/5'}`}
-          animate={isTarget('chest') ? { opacity: [0.7, 1, 0.7] } : {}}
-          transition={{ repeat: Infinity, duration: 2 }}
-        />
-        
-        {/* Lats */}
-        <motion.path 
-          id="lats"
-          d="M 60 90 L 70 90 L 80 130 L 65 170 Z M 140 90 L 130 90 L 120 130 L 135 170 Z"
-          className={`stroke-white/20 stroke-2 transition-colors duration-500 ${isTarget('lats') ? 'fill-gold glow-gold' : 'fill-white/5'}`}
-          animate={isTarget('lats') ? { opacity: [0.7, 1, 0.7] } : {}}
-          transition={{ repeat: Infinity, duration: 2 }}
-        />
-        
-        {/* Core/Abs */}
-        <motion.path 
-          id="core"
-          d="M 80 130 L 120 130 L 115 180 Q 100 190 85 180 Z"
-          className={`stroke-white/20 stroke-2 transition-colors duration-500 ${isTarget('core') ? 'fill-gold glow-gold' : 'fill-white/5'}`}
-          animate={isTarget('core') ? { opacity: [0.7, 1, 0.7] } : {}}
-          transition={{ repeat: Infinity, duration: 2 }}
-        />
-        
-        {/* Biceps */}
-        <motion.path 
-          id="biceps"
-          d="M 50 90 L 60 90 L 55 140 L 45 140 Z M 150 90 L 140 90 L 145 140 L 155 140 Z"
-          className={`stroke-white/20 stroke-2 transition-colors duration-500 ${isTarget('biceps') ? 'fill-gold glow-gold' : 'fill-white/5'}`}
-          animate={isTarget('biceps') ? { opacity: [0.7, 1, 0.7] } : {}}
-          transition={{ repeat: Infinity, duration: 2 }}
-        />
-        
-        {/* Triceps */}
-        <motion.path 
-          id="triceps"
-          d="M 40 90 L 50 90 L 45 140 L 35 140 Z M 160 90 L 150 90 L 155 140 L 165 140 Z"
-          className={`stroke-white/20 stroke-2 transition-colors duration-500 ${isTarget('triceps') ? 'fill-gold glow-gold' : 'fill-white/5'}`}
-          animate={isTarget('triceps') ? { opacity: [0.7, 1, 0.7] } : {}}
-          transition={{ repeat: Infinity, duration: 2 }}
-        />
-        
-        {/* Forearms */}
-        <motion.path 
-          id="forearms"
-          d="M 45 140 L 55 140 L 50 190 L 40 190 Z M 155 140 L 145 140 L 150 190 L 160 190 Z"
-          className={`stroke-white/20 stroke-2 transition-colors duration-500 ${isTarget('forearms') ? 'fill-gold glow-gold' : 'fill-white/5'}`}
-          animate={isTarget('forearms') ? { opacity: [0.7, 1, 0.7] } : {}}
-          transition={{ repeat: Infinity, duration: 2 }}
+          d="M135 80 C150 80, 155 100, 145 110 C135 100, 125 90, 120 80 Z" 
+          fill={getFill('shoulders')} stroke="#0F172A" strokeWidth="2"
+          variants={isTarget('shoulders') ? pulseVariant : {}}
+          initial="initial" animate="animate" filter={isTarget('shoulders') ? 'url(#glow)' : ''}
         />
 
-        {/* Quadriceps */}
+        {/* Chest / Pectorals */}
         <motion.path 
-          id="quadriceps"
-          d="M 85 180 L 100 190 L 100 280 L 80 280 Z M 115 180 L 100 190 L 100 280 L 120 280 Z"
-          className={`stroke-white/20 stroke-2 transition-colors duration-500 ${isTarget('quadriceps') ? 'fill-gold glow-gold' : 'fill-white/5'}`}
-          animate={isTarget('quadriceps') ? { opacity: [0.7, 1, 0.7] } : {}}
-          transition={{ repeat: Infinity, duration: 2 }}
+          d="M100 65 C85 65, 75 75, 70 90 C85 100, 100 95, 100 95 Z" 
+          fill={getFill('chest')} stroke="#0F172A" strokeWidth="2"
+          variants={isTarget('chest') ? pulseVariant : {}}
+          initial="initial" animate="animate" filter={isTarget('chest') ? 'url(#glow)' : ''}
         />
-        
-        {/* Hamstrings/Glutes */}
         <motion.path 
-          id="hamstrings"
-          d="M 70 180 L 85 180 L 80 280 L 65 280 Z M 130 180 L 115 180 L 120 280 L 135 280 Z"
-          className={`stroke-white/20 stroke-2 transition-colors duration-500 ${isTarget('hamstrings') ? 'fill-gold glow-gold' : 'fill-white/5'}`}
-          animate={isTarget('hamstrings') ? { opacity: [0.7, 1, 0.7] } : {}}
-          transition={{ repeat: Infinity, duration: 2 }}
+          d="M100 65 C115 65, 125 75, 130 90 C115 100, 100 95, 100 95 Z" 
+          fill={getFill('chest')} stroke="#0F172A" strokeWidth="2"
+          variants={isTarget('chest') ? pulseVariant : {}}
+          initial="initial" animate="animate" filter={isTarget('chest') ? 'url(#glow)' : ''}
         />
-        
+
+        {/* Core / Abs */}
+        <motion.path 
+          d="M85 100 C75 120, 80 150, 85 160 C100 165, 115 160, 115 160 C120 150, 125 120, 115 100 C100 105, 85 100, 85 100 Z" 
+          fill={getFill('core')} stroke="#0F172A" strokeWidth="2"
+          variants={isTarget('core') ? pulseVariant : {}}
+          initial="initial" animate="animate" filter={isTarget('core') ? 'url(#glow)' : ''}
+        />
+
+        {/* Biceps */}
+        <motion.path 
+          d="M55 110 C45 130, 48 145, 55 155 C62 145, 65 130, 55 110 Z" 
+          fill={getFill('biceps')} stroke="#0F172A" strokeWidth="2"
+          variants={isTarget('biceps') ? pulseVariant : {}}
+          initial="initial" animate="animate" filter={isTarget('biceps') ? 'url(#glow)' : ''}
+        />
+        <motion.path 
+          d="M145 110 C155 130, 152 145, 145 155 C138 145, 135 130, 145 110 Z" 
+          fill={getFill('biceps')} stroke="#0F172A" strokeWidth="2"
+          variants={isTarget('biceps') ? pulseVariant : {}}
+          initial="initial" animate="animate" filter={isTarget('biceps') ? 'url(#glow)' : ''}
+        />
+
+        {/* Forearms */}
+        <motion.path 
+          d="M55 155 C45 180, 45 200, 50 210 C58 200, 62 180, 55 155 Z" 
+          fill={getFill('forearms')} stroke="#0F172A" strokeWidth="2"
+          variants={isTarget('forearms') ? pulseVariant : {}}
+          initial="initial" animate="animate" filter={isTarget('forearms') ? 'url(#glow)' : ''}
+        />
+        <motion.path 
+          d="M145 155 C155 180, 155 200, 150 210 C142 200, 138 180, 145 155 Z" 
+          fill={getFill('forearms')} stroke="#0F172A" strokeWidth="2"
+          variants={isTarget('forearms') ? pulseVariant : {}}
+          initial="initial" animate="animate" filter={isTarget('forearms') ? 'url(#glow)' : ''}
+        />
+
+        {/* Quads / Thighs */}
+        <motion.path 
+          d="M85 165 C70 200, 75 250, 85 260 C95 250, 95 200, 95 165 C90 168, 85 165, 85 165 Z" 
+          fill={getFill('quads')} stroke="#0F172A" strokeWidth="2"
+          variants={isTarget('quads') ? pulseVariant : {}}
+          initial="initial" animate="animate" filter={isTarget('quads') ? 'url(#glow)' : ''}
+        />
+        <motion.path 
+          d="M115 165 C130 200, 125 250, 115 260 C105 250, 105 200, 105 165 C110 168, 115 165, 115 165 Z" 
+          fill={getFill('quads')} stroke="#0F172A" strokeWidth="2"
+          variants={isTarget('quads') ? pulseVariant : {}}
+          initial="initial" animate="animate" filter={isTarget('quads') ? 'url(#glow)' : ''}
+        />
+
         {/* Calves */}
         <motion.path 
-          id="calves"
-          d="M 80 280 L 100 280 L 95 360 L 85 360 Z M 120 280 L 100 280 L 105 360 L 115 360 Z"
-          className={`stroke-white/20 stroke-2 transition-colors duration-500 ${isTarget('calves') ? 'fill-gold glow-gold' : 'fill-white/5'}`}
-          animate={isTarget('calves') ? { opacity: [0.7, 1, 0.7] } : {}}
-          transition={{ repeat: Infinity, duration: 2 }}
+          d="M85 265 C75 290, 80 340, 85 350 C92 340, 92 290, 90 265 C88 268, 85 265, 85 265 Z" 
+          fill={getFill('calves')} stroke="#0F172A" strokeWidth="2"
+          variants={isTarget('calves') ? pulseVariant : {}}
+          initial="initial" animate="animate" filter={isTarget('calves') ? 'url(#glow)' : ''}
         />
+        <motion.path 
+          d="M115 265 C125 290, 120 340, 115 350 C108 340, 108 290, 110 265 C112 268, 115 265, 115 265 Z" 
+          fill={getFill('calves')} stroke="#0F172A" strokeWidth="2"
+          variants={isTarget('calves') ? pulseVariant : {}}
+          initial="initial" animate="animate" filter={isTarget('calves') ? 'url(#glow)' : ''}
+        />
+
+        {/* Lats & Back (Represented slightly on the sides for front view or generic back) */}
+        <motion.path 
+          d="M70 90 C60 110, 65 140, 85 100 Z" 
+          fill={getFill('lats')} stroke="#0F172A" strokeWidth="1"
+          variants={isTarget('lats') ? pulseVariant : {}}
+          initial="initial" animate="animate" filter={isTarget('lats') ? 'url(#glow)' : ''}
+        />
+        <motion.path 
+          d="M130 90 C140 110, 135 140, 115 100 Z" 
+          fill={getFill('lats')} stroke="#0F172A" strokeWidth="1"
+          variants={isTarget('lats') ? pulseVariant : {}}
+          initial="initial" animate="animate" filter={isTarget('lats') ? 'url(#glow)' : ''}
+        />
+
       </svg>
       
-      {/* Overlay legend */}
+      {/* Floating Labels for Active Muscles */}
       {activeMuscles.length > 0 && (
-        <div className="absolute top-0 right-0 p-3 glass-card rounded-xl pointer-events-none scale-75 origin-top-right">
-          <p className="text-xs font-bold text-gold mb-1 uppercase">Target</p>
-          <ul className="text-[10px] space-y-1">
-            {activeMuscles.map(m => (
-              <li key={m} className="capitalize flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-gold inline-block" /> {m.replace('_', ' ')}
-              </li>
-            ))}
-          </ul>
+        <div className="absolute top-2 left-2 flex flex-col gap-1">
+          {activeMuscles.map(m => (
+            <span key={m} className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-gold text-gold-foreground rounded-full shadow-lg">
+              {m}
+            </span>
+          ))}
         </div>
       )}
     </div>

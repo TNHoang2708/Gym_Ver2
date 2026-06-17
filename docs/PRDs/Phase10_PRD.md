@@ -9,13 +9,13 @@ Phase 10 transitions the Nutrition module from a simple macro-logging tool into 
 **Estimated Time:** 20 mins
 
 ### Tasks:
-- [ ] 1. Open `src/app/(app)/profile/page.tsx`.
-- [ ] 2. Create a new modal state: `activeModal === 'dietary'`.
-- [ ] 3. Add a new section to the Profile menu titled "Dietary Restrictions".
-- [ ] 4. In the modal, build a multi-select UI for common dietary lifestyles (e.g., Vegan, Vegetarian, Keto, Paleo, Halal).
-- [ ] 5. Below the lifestyles, build a tag-input component for entering specific allergies (e.g., Peanuts, Shellfish, Dairy).
-- [ ] 6. Update the `user_memory` database schema. Alter `hard_memory` to accept `dietary_lifestyles` (string array) and `allergies` (string array).
-- [ ] 7. Implement the `updateDietaryInfo` function to save this data back to Supabase.
+- [x] 1. Open `src/app/(app)/profile/page.tsx`.
+- [x] 2. Create a new modal state: `activeModal === 'dietary'`.
+- [x] 3. Add a new section to the Profile menu titled "Dietary Restrictions".
+- [x] 4. In the modal, build a multi-select UI for common dietary lifestyles (e.g., Vegan, Vegetarian, Keto, Paleo, Halal).
+- [x] 5. Below the lifestyles, build a tag-input component for entering specific allergies (e.g., Peanuts, Shellfish, Dairy).
+- [x] 6. Update the `user_memory` database schema. Alter `hard_memory` to accept `dietary_lifestyles` (string array) and `allergies` (string array).
+- [x] 7. Implement the `updateDietaryInfo` function to save this data back to Supabase.
 
 ---
 
@@ -23,13 +23,13 @@ Phase 10 transitions the Nutrition module from a simple macro-logging tool into 
 **Estimated Time:** 35 mins
 
 ### Tasks:
-- [ ] 1. Create a new Next.js route handler: `src/app/api/recipes/route.ts`.
-- [ ] 2. Import the Vercel AI SDK (`generateObject` or `streamObject`) and the OpenAI provider.
-- [ ] 3. Define a strict Zod schema for the expected LLM output. The schema must include: `mealName` (string), `macros` (object: calories, protein, carbs, fat), `ingredients` (array of strings with measurements), `instructions` (array of strings), and `prepTimeMinutes` (number).
-- [ ] 4. Write the system prompt. Instruct the AI to act as a Michelin-star sports nutritionist.
-- [ ] 5. Inject the user's current `dietary_lifestyles`, `allergies`, and target daily macros into the prompt dynamically.
-- [ ] 6. Enforce a rule in the prompt: "The total macros of the generated meals must equal the user's daily target ± 5%."
-- [ ] 7. Return the structured JSON response to the client.
+- [x] 1. Create a new Next.js route handler: `src/app/api/recipes/route.ts`.
+- [x] 2. Import the Vercel AI SDK (`generateObject` or `streamObject`) and the OpenAI provider.
+- [x] 3. Define a strict Zod schema for the expected LLM output. The schema must include: `mealName` (string), `macros` (object: calories, protein, carbs, fat), `ingredients` (array of strings with measurements), `instructions` (array of strings), and `prepTimeMinutes` (number).
+- [x] 4. Write the system prompt. Instruct the AI to act as a Michelin-star sports nutritionist.
+- [x] 5. Inject the user's current `dietary_lifestyles`, `allergies`, and target daily macros into the prompt dynamically.
+- [x] 6. Enforce a rule in the prompt: "The total macros of the generated meals must equal the user's daily target ± 5%."
+- [x] 7. Return the structured JSON response to the client.
 
 ---
 
@@ -37,13 +37,13 @@ Phase 10 transitions the Nutrition module from a simple macro-logging tool into 
 **Estimated Time:** 30 mins
 
 ### Tasks:
-- [ ] 1. Navigate to `src/app/(app)/nutrition/page.tsx`.
-- [ ] 2. Add a new tab toggle at the top of the screen: "Food Log" vs "AI Meal Plan".
-- [ ] 3. In the "AI Meal Plan" view, add a prominent, gold-glowing "Generate Today's Menu" button.
-- [ ] 4. Build a skeleton loader to display while the `/api/recipes` endpoint is processing (which may take 5-10 seconds).
-- [ ] 5. Build the `RecipeCard` component. It should display the meal name, a macro breakdown pill, and prep time.
-- [ ] 6. Add an expandable accordion inside `RecipeCard` to reveal the full ingredients list and step-by-step instructions.
-- [ ] 7. Integrate a stock image API (like Unsplash) to fetch a generic food image based on the `mealName`, or use a stylized generic SVG icon for meals.
+- [x] 1. Navigate to `src/app/(app)/nutrition/page.tsx`.
+- [x] 2. Add a new tab toggle at the top of the screen: "Food Log" vs "AI Meal Plan".
+- [x] 3. In the "AI Meal Plan" view, add a prominent, gold-glowing "Generate Today's Menu" button.
+- [x] 4. Build a skeleton loader to display while the `/api/recipes` endpoint is processing (which may take 5-10 seconds).
+- [x] 5. Build the `RecipeCard` component. It should display the meal name, a macro breakdown pill, and prep time.
+- [x] 6. Add an expandable accordion inside `RecipeCard` to reveal the full ingredients list and step-by-step instructions.
+- [x] 7. Integrate a stock image API (like Unsplash) to fetch a generic food image based on the `mealName`, or use a stylized generic SVG icon for meals.
 
 ---
 
@@ -51,8 +51,8 @@ Phase 10 transitions the Nutrition module from a simple macro-logging tool into 
 **Estimated Time:** 15 mins
 
 ### Tasks:
-- [ ] 1. Inside the `RecipeCard` component, add a secondary action button: "Log This Meal".
-- [ ] 2. When clicked, invoke a function that takes the AI-generated macros and automatically inserts a new row into the `food_logs` table.
-- [ ] 3. Trigger a toast notification: "AI Meal logged successfully."
-- [ ] 4. Automatically refresh the parent Nutrition page's macro progress bars to reflect the newly ingested calories.
-- [ ] 5. Add logic to disable the "Log This Meal" button if the meal has already been logged to prevent duplicate entries.
+- [x] 1. Inside the `RecipeCard` component, add a secondary action button: "Log This Meal".
+- [x] 2. When clicked, invoke a function that takes the AI-generated macros and automatically inserts a new row into the `food_logs` table.
+- [x] 3. Trigger a toast notification: "AI Meal logged successfully."
+- [x] 4. Automatically refresh the parent Nutrition page's macro progress bars to reflect the newly ingested calories.
+- [x] 5. Add logic to disable the "Log This Meal" button if the meal has already been logged to prevent duplicate entries.

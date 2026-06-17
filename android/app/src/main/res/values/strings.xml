@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">GymPlannerAI</string>
+    <string name="title_activity_main">GymPlannerAI</string>
+    <string name="package_name">com.gymplannerai.app</string>
+    <string name="custom_url_scheme">com.gymplannerai.app</string>
+</resources>

@@ -1,4 +1,4 @@
-name: Production Pipeline
+name: Production CI
 
 on:
   push:
@@ -7,11 +7,11 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build-and-test:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Repository
+    - name: Checkout Code
       uses: actions/checkout@v4
 
     - name: Setup Node.js v20
@@ -23,21 +23,12 @@ jobs:
     - name: Install Dependencies
       run: npm ci
 
-    - name: Run Linter
+    - name: Lint Code
       run: npm run lint
 
-    - name: Next.js Build Cache
-      uses: actions/cache@v4
-      with:
-        path: |
-          .next/cache
-        key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**.[jt]s', '**.[jt]sx') }}
-        restore-keys: |
-          ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-
-
-    - name: Build Application
-      run: npm run build
+    - name: Build Next.js Project
       env:
-        # Dummy variables for build time requirements (if any)
-        NEXT_PUBLIC_SUPABASE_URL: "https://placeholder.supabase.co"
-        NEXT_PUBLIC_SUPABASE_ANON_KEY: "placeholder"
+        # We supply dummy variables for the build step if required by Next.js
+        NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://dummy.supabase.co' }}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'dummy' }}
+      run: npm run build

@@ -53,6 +53,7 @@ export interface SessionMeta {
 export interface UserMemory {
   id: string
   user_id: string
+  is_admin?: boolean
   hard_memory: HardMemory
   soft_memory: SoftMemory
   emotional_memory: EmotionalMemory
@@ -216,3 +217,20 @@ export interface PostComment {
   created_at: string
 }
 
+// ---- Telemetry & Admin Types ----
+
+export interface GlobalSettings {
+  key: string
+  value: any
+  updated_at: string
+}
+
+export interface ApiTelemetry {
+  id: string
+  created_at: string
+  user_id: string | null
+  endpoint: string
+  tokens_used: number
+  cost_estimated: number
+  error_message?: string
+}

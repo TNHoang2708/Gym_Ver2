@@ -84,6 +84,10 @@ function buildSoftMemorySection(soft: SoftMemory): string {
   if (soft.motivation) lines.push(`- Primary motivation: ${soft.motivation}`)
   if (soft.commitment_level) lines.push(`- Commitment level: ${COMMIT_LABELS[soft.commitment_level] ?? soft.commitment_level}`)
 
+  // Wearable data
+  if (soft.latest_steps !== undefined) lines.push(`- Latest Daily Steps: ${soft.latest_steps} (Goal: 10000)`)
+  if (soft.latest_sleep_hours !== undefined) lines.push(`- Last Night's Sleep: ${soft.latest_sleep_hours} hours. (If < 6, consider suggesting lighter recovery. If > 7, optimal.)`)
+
   const notes = soft.notes ?? []
   if (notes.length > 0) {
     lines.push(`\n### Facts I've learned about this user:`)

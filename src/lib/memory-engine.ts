@@ -175,30 +175,52 @@ export function parseAITags(rawText: string): ParsedTags {
   let emotion: ParsedTags['emotion'] = null
   let schedule: WorkoutSchedule | null = null
 
-  // Find and parse all tags
-  let match: RegExpExecArray | null
-  const tagMatches: Array<{ fullMatch: string; type: string; value: string }> = []
+  let cleanedText = rawText
 
-  // Reset regex state
+  // 1. Extract and remove the SCHEDULE tag first, as its JSON contents break simple regex
+  const scheduleStart = cleanedText.indexOf('[SCHEDULE:')
+  if (scheduleStart !== -1) {
+    let tagEnd = cleanedText.indexOf(']', scheduleStart) // fallback end
+    try {
+      const jsonStart = cleanedText.indexOf('{', scheduleStart)
+      const jsonEnd = cleanedText.lastIndexOf('}')
+      
+      // Ensure the braces we found belong to this schedule tag
+      if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart && jsonStart > scheduleStart) {
+        const jsonStr = cleanedText.slice(jsonStart, jsonEnd + 1)
+        schedule = JSON.parse(jsonStr)
+        
+        // The tag ends at the first ']' after the JSON object
+        const closingBracketIdx = cleanedText.indexOf(']', jsonEnd)
+        if (closingBracketIdx !== -1) {
+          tagEnd = closingBracketIdx
+        } else {
+          tagEnd = jsonEnd
+        }
+      }
+    } catch (e) {
+      console.warn('[Tags] Failed to parse SCHEDULE JSON:', e)
+    }
+    
+    // Remove the entire SCHEDULE block from the text
+    cleanedText = cleanedText.slice(0, scheduleStart) + cleanedText.slice(tagEnd + 1)
+  }
+
+  // 2. Parse remaining simple tags (MEMORY, EMOTION, TOPIC)
+  let match: RegExpExecArray | null
   TAG_REGEX.lastIndex = 0
   const regex = new RegExp(TAG_REGEX.source, TAG_REGEX.flags)
 
-  while ((match = regex.exec(rawText)) !== null) {
-    tagMatches.push({
-      fullMatch: match[0],
-      type: match[1],
-      value: match[2].trim(),
-    })
-  }
+  while ((match = regex.exec(cleanedText)) !== null) {
+    const fullMatch = match[0]
+    const type = match[1]
+    const value = match[2].trim()
 
-  for (const { type, value } of tagMatches) {
     switch (type) {
       case 'MEMORY':
         if (value) memories.push(value)
         break
-
       case 'EMOTION': {
-        // Format: mood|context (context optional)
         const parts = value.split('|')
         const rawMood = parts[0]?.trim().toLowerCase() as MoodType
         const context = parts[1]?.trim()
@@ -212,35 +234,15 @@ export function parseAITags(rawText: string): ParsedTags {
         }
         break
       }
-
       case 'TOPIC':
         if (value) topics.push(value)
         break
-
-      case 'SCHEDULE': {
-        // Value is JSON string
-        try {
-          // The value may be truncated in the regex — try to get the full JSON
-          const jsonStart = rawText.indexOf('[SCHEDULE:') + '[SCHEDULE:'.length
-          const jsonEnd = rawText.lastIndexOf(']')
-          const jsonStr = rawText.slice(jsonStart, jsonEnd)
-          schedule = JSON.parse(jsonStr)
-        } catch {
-          console.warn('[Tags] Failed to parse SCHEDULE JSON:', value)
-        }
-        break
-      }
     }
-  }
-
-  // Strip all tags from the text shown to the user
-  let cleanedText = rawText
-  for (const { fullMatch } of tagMatches) {
+    
+    // Remove the matched tag from cleaned text
     cleanedText = cleanedText.replace(fullMatch, '')
   }
 
-  // Also remove any [SCHEDULE:...] which may span multiple lines
-  cleanedText = cleanedText.replace(/\[SCHEDULE:[\s\S]*?\]/g, '')
   cleanedText = cleanedText.trim()
 
   return { memories, emotion, topics, schedule, cleanedText }

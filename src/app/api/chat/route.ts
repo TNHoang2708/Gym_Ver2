@@ -44,6 +44,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // 1.5. Kill Switch Check
+    const { data: killSwitch } = await supabase
+      .from('global_settings')
+      .select('value')
+      .eq('key', 'ai_kill_switch')
+      .single()
+
+    if (killSwitch?.value === true || killSwitch?.value === 'true') {
+      return NextResponse.json(
+        { error: 'AI services are temporarily disabled for maintenance.' },
+        { status: 503 }
+      )
+    }
+
     // 2. Parse request body
     const body = await request.json()
     const userMessage: string = body.message?.trim()
@@ -136,12 +150,26 @@ export async function POST(request: NextRequest) {
     }
 
     // 9. Call Custom AI with fallback
-    const rawReply = await callAIWithFallback({
+    const aiResponse = await callAIWithFallback({
       systemPrompt,
       history: isGreeting ? [] : history,
       userMessage: promptMessage,
       temperature: 0.85,
       maxOutputTokens: 1500,
+    })
+
+    const rawReply = aiResponse.text
+    const tokensUsed = aiResponse.tokensUsed
+
+    // Async log telemetry (don't await so we don't block the response)
+    const costEstimated = (tokensUsed / 1000) * 0.000150; // Gemini 1.5 Flash cost approx $0.15 / 1M tokens
+    supabase.from('api_telemetry').insert({
+      user_id: user.id,
+      endpoint: '/api/chat',
+      tokens_used: tokensUsed,
+      cost_estimated: costEstimated,
+    }).then(({ error }) => {
+      if (error) console.error('[Telemetry] Failed to log:', error)
     })
 
     // 10. Parse tags from response
@@ -260,6 +288,21 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('[/api/chat] Error:', error)
     const message = error instanceof Error ? error.message : 'Internal server error'
+    
+    try {
+      const supabase = await createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      await supabase.from('api_telemetry').insert({
+        user_id: user?.id || null,
+        endpoint: '/api/chat',
+        tokens_used: 0,
+        cost_estimated: 0,
+        error_message: message
+      })
+    } catch (telemetryError) {
+      console.error('Failed to log telemetry error:', telemetryError)
+    }
+
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }

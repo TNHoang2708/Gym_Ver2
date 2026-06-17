@@ -100,14 +100,22 @@ async function getFoodByBarcode(barcode: string): Promise<FoodSearchResult | nul
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
+import { useNutritionData } from '@/lib/hooks/use-data'
+
 export default function NutritionPage() {
   const supabase = createClient()
+  const { data, isLoading, mutate } = useNutritionData()
+  const logs = data?.todayLogs || []
+  const weekData = data?.weekData || []
+  const favourites = data?.favourites || []
 
-  const [logs, setLogs]           = useState<FoodLog[]>([])
-  const [weekData, setWeekData]   = useState<WeekDay[]>([])
-  const [favourites, setFavourites] = useState<FoodFavourite[]>([])
-  const [goals, setGoals]         = useState<NutritionGoals>({ bmr: 0, tdee: 0, goal_calories: 2200, goal_protein_g: 160, goal_carbs_g: 250, goal_fat_g: 70 })
-  const [loading, setLoading]     = useState(true)
+  // Derived Goals from memory
+  const memData = data?.memory
+  let goals = { bmr: 0, tdee: 0, goal_calories: 2200, goal_protein_g: 160, goal_carbs_g: 250, goal_fat_g: 70 }
+  if (memData?.hard_memory) {
+    goals = calculateNutritionGoals(memData.hard_memory as HardMemory, (memData.soft_memory ?? {}) as SoftMemory)
+  }
+
   const [showAdd, setShowAdd] = useState(false)
   const [viewMode, setViewMode] = useState<'log' | 'ai'>('log')
   
@@ -115,15 +123,39 @@ export default function NutritionPage() {
   const [generatingRecipe, setGeneratingRecipe] = useState(false)
   const [aiRecipe, setAiRecipe] = useState<any>(null)
   const [activeTab, setActiveTab] = useState<MealType | 'All'>('All')
-
-  // Form state
-  const [foodName,     setFoodName]     = useState('')
-  const [calories,     setCalories]     = useState('')
-  const [protein,      setProtein]      = useState('')
-  const [carbs,        setCarbs]        = useState('')
-  const [fat,          setFat]          = useState('')
-  const [mealType,     setMealType]     = useState<MealType>('Breakfast')
+  
+  // Form State
+  const [mealName, setMealName] = useState('')
+  const [calories, setCalories] = useState('')
+  const [protein, setProtein] = useState('')
+  const [carbs, setCarbs] = useState('')
+  const [fat, setFat] = useState('')
+  const [notes, setNotes] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [mealType, setMealType] = useState<MealType>('Breakfast')
+  const [foodName, setFoodName] = useState('')
+
+  // AI Scanner State
+  const [showScanner, setShowScanner] = useState(false)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [aiError, setAiError] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // AI Meal Generator State
+  const [showGenerator, setShowGenerator] = useState(false)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [preferences, setPreferences] = useState('')
+  const [generatedMeal, setGeneratedMeal] = useState<{
+    name: string;
+    calories: number;
+    protein_g: number;
+    carbs_g: number;
+    fat_g: number;
+    recipe: string;
+  } | null>(null)
+
+  const html5QrCodeRef = useRef<Html5Qrcode | null>(null)
 
   // Search state
   const [searchQuery,   setSearchQuery]   = useState('')
@@ -133,95 +165,12 @@ export default function NutritionPage() {
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Scanner state
-  const [showScanner, setShowScanner] = useState(false)
   const [isScanning, setIsScanning] = useState(false)
-  const html5QrCodeRef = useRef<Html5Qrcode | null>(null)
 
   // Camera/Image state
   const [isAnalyzingImage, setIsAnalyzingImage] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // ── Load data ──────────────────────────────────────────────────────────────
-  useEffect(() => { loadData() }, [])
 
-  async function loadData() {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-
-    const today = new Date().toISOString().split('T')[0]
-
-    // Fetch logs
-    const { data: todayLogs } = await supabase
-      .from('food_logs')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('log_date', today)
-      .order('created_at', { ascending: true })
-
-    if (todayLogs) setLogs(todayLogs)
-
-    // Fetch favourites
-    const { data: favData } = await supabase
-      .from('food_favourites')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-
-    if (favData) setFavourites(favData)
-
-    // Real nutrition goals from user memory
-    const { data: memData } = await supabase
-      .from('user_memory')
-      .select('hard_memory, soft_memory')
-      .eq('user_id', user.id)
-      .single()
-
-    if (memData?.hard_memory) {
-      const g = calculateNutritionGoals(
-        memData.hard_memory as HardMemory,
-        (memData.soft_memory ?? {}) as SoftMemory
-      )
-      setGoals(g)
-    }
-
-    // Last 7 days calorie data
-    const days: WeekDay[] = []
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date()
-      d.setDate(d.getDate() - i)
-      const dateStr = d.toISOString().split('T')[0]
-      days.push({
-        label:   i === 0 ? 'Today' : d.toLocaleDateString('en', { weekday: 'short' }),
-        date:    dateStr,
-        protein_cal: 0,
-        carbs_cal: 0,
-        fat_cal: 0,
-        total_cal: 0,
-        isToday: i === 0,
-      })
-    }
-
-    const { data: weekLogs } = await supabase
-      .from('food_logs')
-      .select('log_date, calories, protein_g, carbs_g, fat_g')
-      .eq('user_id', user.id)
-      .gte('log_date', days[0].date)
-      .lte('log_date', today)
-
-    if (weekLogs) {
-      for (const log of weekLogs) {
-        const day = days.find(d => d.date === log.log_date)
-        if (day) {
-          day.total_cal += log.calories
-          day.protein_cal += (log.protein_g || 0) * 4
-          day.carbs_cal += (log.carbs_g || 0) * 4
-          day.fat_cal += (log.fat_g || 0) * 9
-        }
-      }
-    }
-    setWeekData(days)
-    setLoading(false)
-  }
 
   // ── Scanner Logic ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -323,6 +272,23 @@ export default function NutritionPage() {
     }, 400)
   }, [])
 
+  if (isLoading) {
+    return (
+      <div className="relative min-h-screen px-4 pt-8">
+        <div className="max-w-6xl mx-auto space-y-8 animate-pulse">
+          <div className="h-10 w-48 bg-white/5 rounded-lg"></div>
+          <div className="grid md:grid-cols-4 gap-4">
+            <div className="h-32 bg-white/5 rounded-[2rem]"></div>
+            <div className="h-32 bg-white/5 rounded-[2rem]"></div>
+            <div className="h-32 bg-white/5 rounded-[2rem]"></div>
+            <div className="h-32 bg-white/5 rounded-[2rem]"></div>
+          </div>
+          <div className="h-64 bg-white/5 rounded-[2rem]"></div>
+        </div>
+      </div>
+    )
+  }
+
   function selectFood(item: { food_name: string, calories: number, protein_g: number, carbs_g: number, fat_g: number }) {
     setFoodName(item.food_name)
     setSearchQuery(item.food_name)
@@ -342,7 +308,7 @@ export default function NutritionPage() {
     if (existing) {
       const { error } = await supabase.from('food_favourites').delete().eq('id', existing.id)
       if (!error) {
-        setFavourites(prev => prev.filter(f => f.id !== existing.id))
+        mutate()
         toast.success("Removed from favourites")
       }
     } else {
@@ -351,7 +317,7 @@ export default function NutritionPage() {
       }]).select().single()
       
       if (!error && data) {
-        setFavourites(prev => [data, ...prev])
+        mutate()
         toast.success("Saved to favourites")
       } else {
         toast.error("Failed to save favourite")
@@ -385,7 +351,7 @@ export default function NutritionPage() {
       toast.success(`${foodName} logged!`)
       setShowAdd(false)
       setFoodName(''); setSearchQuery(''); setCalories(''); setProtein(''); setCarbs(''); setFat('')
-      loadData()
+      mutate()
     }
     setIsSubmitting(false)
   }
@@ -397,7 +363,7 @@ export default function NutritionPage() {
       toast.error('Failed to delete entry')
     } else {
       toast.success(`${name} removed`)
-      loadData()
+      mutate()
     }
   }
 
@@ -457,7 +423,7 @@ export default function NutritionPage() {
       toast.success('AI Meal Logged!')
       setAiRecipe(null)
       setViewMode('log')
-      loadData()
+      mutate()
     }
   }
 
@@ -486,17 +452,6 @@ export default function NutritionPage() {
   const weekAvg = weekData.filter(d => d.total_cal > 0).length > 0
     ? Math.round(weekData.reduce((a, d) => a + d.total_cal, 0) / weekData.filter(d => d.total_cal > 0).length)
     : 0
-
-  if (loading) {
-    return (
-      <div className="flex-1 flex items-center justify-center min-h-[60vh]">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-gold/20 border-t-gold rounded-full animate-spin" />
-          <p className="text-muted-foreground text-sm animate-pulse">Loading nutrition data...</p>
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div className="relative min-h-screen">

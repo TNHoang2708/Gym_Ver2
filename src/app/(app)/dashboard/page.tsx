@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Activity, Flame, Dumbbell, Target, Sparkles, Trophy, CalendarCheck, Watch, Moon, Loader2 } from 'lucide-react'
+import Link from 'next/link'
 import { toast } from 'sonner'
 import { syncHealthData } from '@/lib/health/sync'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -16,138 +17,66 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 import type { UserMemory, DailyNutritionSummary, WorkoutLog, WorkoutSchedule } from '@/types'
-
-interface DashboardData {
-  memory: UserMemory | null
-  nutrition: DailyNutritionSummary | null
-  workoutLogs: WorkoutLog[]
-  schedule: WorkoutSchedule | null
-  streak: number
-  insight: string
-}
+import { useDashboardData } from '@/lib/hooks/use-data'
 
 export default function DashboardPage() {
-  const [data, setData] = useState<DashboardData | null>(null)
-  const [loading, setLoading] = useState(true)
+  const { data, isLoading, mutate } = useDashboardData()
+  const [insightLoading, setInsightLoading] = useState(false)
   const [syncingHealth, setSyncingHealth] = useState(false)
+  const [insight, setInsight] = useState("Stay focused and trust the process. Today is another opportunity to get closer to your goals.")
 
   useEffect(() => {
-    async function loadData() {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      // Parallel data fetching
-      const [
-        { data: memData },
-        { data: foodLogs },
-        { data: workoutLogs },
-        { data: schedules }
-      ] = await Promise.all([
-        supabase.from('user_memory').select('*').eq('user_id', user.id).single(),
-        supabase.from('food_logs').select('*').eq('user_id', user.id).eq('log_date', new Date().toISOString().split('T')[0]),
-        supabase.from('workout_logs').select('*').eq('user_id', user.id).order('log_date', { ascending: false }),
-        supabase.from('workout_schedules').select('*').eq('user_id', user.id).eq('active', true).order('created_at', { ascending: false }).limit(1)
-      ])
-
-      const memory = memData as UserMemory | null
-      const schedule = (schedules && schedules.length > 0) ? schedules[0].schedule as WorkoutSchedule : null
-
-      // Calculate Nutrition
-      let nutrition: DailyNutritionSummary | null = null
-      if (foodLogs) {
-        const totals = foodLogs.reduce(
-          (acc, log) => ({
-            calories: acc.calories + (log.calories || 0),
-            protein_g: acc.protein_g + (log.protein_g || 0),
-            carbs_g: acc.carbs_g + (log.carbs_g || 0),
-            fat_g: acc.fat_g + (log.fat_g || 0),
-          }),
-          { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 }
-        )
-        nutrition = {
-          ...totals,
-          goal_calories: 2000, // Ideally pulled from memory/lib
-          goal_protein_g: 150,
-          goal_carbs_g: 200,
-          goal_fat_g: 65,
-        }
-      }
-
-      // Calculate Streak
-      let currentStreak = 0
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      
-      const logs = workoutLogs || []
-      let checkDate = new Date(today)
-      
-      // If no workout today, check if there was one yesterday to keep streak alive
-      const hasWorkoutToday = logs.some(l => l.log_date === checkDate.toISOString().split('T')[0] && l.trained)
-      if (!hasWorkoutToday) {
-        checkDate.setDate(checkDate.getDate() - 1)
-      }
-
-      for (let i = 0; i < 365; i++) {
-        const dateStr = checkDate.toISOString().split('T')[0]
-        const log = logs.find(l => l.log_date === dateStr)
-        if (log && log.trained) {
-          currentStreak++
-          checkDate.setDate(checkDate.getDate() - 1)
-        } else {
-          break
-        }
-      }
-
-      // Fetch dynamic insight
-      let insight = "Stay focused and trust the process. Today is another opportunity to get closer to your goals."
-      try {
-        const res = await fetch('/api/insight', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ nutrition, workoutStreak: currentStreak })
-        })
-        if (res.ok) {
-          const json = await res.json()
-          if (json.insight) insight = json.insight
-        }
-      } catch (err) {
-        console.error('Failed to fetch insight:', err)
-      }
-
-      setData({
-        memory,
-        nutrition,
-        workoutLogs: logs,
-        schedule,
-        streak: currentStreak,
-        insight
+    if (data && !(data as any).insightFetched) {
+      setInsightLoading(true)
+      // Fetch dynamic insight asynchronously
+      fetch('/api/insight', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nutrition: data.nutrition, workoutStreak: data.streak })
       })
-      setLoading(false)
+      .then(res => res.json())
+      .then(json => {
+        if (json.insight) {
+          setInsight(json.insight)
+          // Mark as fetched so we don't refetch on every cache hit
+          mutate(prev => prev ? { ...prev, insightFetched: true } as any : prev, false)
+        }
+      })
+      .catch(err => console.error('Failed to fetch insight:', err))
+      .finally(() => setInsightLoading(false))
     }
+  }, [data])
 
-    loadData()
-  }, [])
-
-  if (loading || !data) {
+  if (isLoading) {
     return (
-      <div className="flex-1 flex items-center justify-center min-h-[50vh]">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-gold/20 border-t-gold rounded-full animate-spin" />
-          <p className="text-muted-foreground font-medium animate-pulse">Initializing Interface...</p>
+      <div className="relative min-h-screen px-4 pt-8">
+        <div className="max-w-6xl mx-auto space-y-8 animate-pulse">
+          <div className="h-10 w-48 bg-white/5 rounded-lg"></div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+            <div className="h-32 bg-white/5 rounded-[2rem]"></div>
+            <div className="h-32 bg-white/5 rounded-[2rem]"></div>
+            <div className="h-32 bg-white/5 rounded-[2rem]"></div>
+            <div className="h-32 bg-white/5 rounded-[2rem]"></div>
+          </div>
+          <div className="grid lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 h-[400px] bg-white/5 rounded-[2rem]"></div>
+            <div className="h-[400px] bg-white/5 rounded-[2rem]"></div>
+          </div>
         </div>
       </div>
     )
   }
 
-  const { memory, nutrition, workoutLogs, schedule, streak, insight } = data
+  if (!data) return null;
+
+  const { memory, nutrition, workoutLogs, schedule, streak } = data
 
   async function handleHealthSync() {
     setSyncingHealth(true)
     try {
       const hd = await syncHealthData()
       if (memory && memory.soft_memory) {
-        setData({
+        mutate({
           ...data!,
           memory: {
             ...memory,
@@ -157,7 +86,7 @@ export default function DashboardPage() {
               latest_sleep_hours: hd.sleepHours
             }
           }
-        })
+        }, false)
       }
       toast.success('Device Sync Complete')
     } catch (err) {
@@ -176,11 +105,9 @@ export default function DashboardPage() {
     const shortName = d.toLocaleDateString('en-US', { weekday: 'short' })
     const log = workoutLogs.find(l => l.log_date === dateStr)
     
-    // We assume an active session is 60 minutes for the chart, rest is 0
     chartData.push({
       name: shortName,
-      active: log?.trained ? 60 : 0,
-      rest: log?.trained ? 0 : 60
+      volume: log?.volume_kg || 0
     })
   }
 
@@ -192,7 +119,7 @@ export default function DashboardPage() {
   ]
 
   // Weekly Totals
-  const workoutsThisWeek = chartData.filter(d => d.active > 0).length
+  const workoutsThisWeek = chartData.filter(d => d.volume > 0).length
   const workoutsPlanned = schedule ? schedule.frequency : 0
 
   return (
@@ -214,6 +141,10 @@ export default function DashboardPage() {
             <h1 className="text-3xl md:text-4xl font-heading font-bold text-foreground tracking-tight">Overview</h1>
             <p className="text-muted-foreground mt-1 text-sm md:text-base">Here is your daily snapshot.</p>
           </div>
+          <Link href="/workout/active" className="flex items-center gap-2 bg-gold text-black font-bold px-4 py-2 rounded-xl hover:scale-105 transition-transform glow-gold">
+            <Dumbbell className="w-4 h-4" />
+            <span className="hidden md:inline">Start Workout</span>
+          </Link>
         </motion.div>
 
         {/* Metrics Grid */}
@@ -249,7 +180,10 @@ export default function DashboardPage() {
             transition={{ delay: 0.2 }}
           >
             <div className="flex items-center justify-between mb-8">
-              <h2 className="text-xl font-heading font-bold">Activity Pulse</h2>
+              <div className="flex items-center gap-3">
+                <h2 className="text-xl font-heading font-bold">Activity Pulse</h2>
+                <Link href="/workout/history" className="text-xs font-semibold text-gold bg-gold/10 px-3 py-1 rounded-full hover:bg-gold/20 transition-colors">History</Link>
+              </div>
               <select className="bg-transparent text-sm text-muted-foreground outline-none border-b border-border pb-1">
                 <option>Past 7 Days</option>
               </select>
@@ -263,9 +197,9 @@ export default function DashboardPage() {
                   <Tooltip 
                     cursor={{ fill: 'rgba(255,255,255,0.05)' }}
                     contentStyle={{ backgroundColor: '#111', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '1rem', color: '#fff' }}
+                    formatter={(value: any) => [`${value} kg`, 'Volume']}
                   />
-                  <Bar dataKey="active" stackId="a" fill="#D4AF6A" radius={[0, 0, 4, 4]} />
-                  <Bar dataKey="rest" stackId="a" fill="#222" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="volume" fill="#D4AF6A" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -298,7 +232,8 @@ export default function DashboardPage() {
             
             <div className="flex-1 space-y-4">
               <div className="p-4 rounded-2xl bg-white/5 border border-white/5">
-                <p className="text-sm text-foreground leading-relaxed italic">
+                <p className="text-sm text-foreground leading-relaxed italic flex items-center gap-2">
+                  {insightLoading && <Loader2 className="w-3 h-3 animate-spin text-gold shrink-0" />}
                   "{insight}"
                 </p>
               </div>

@@ -59,7 +59,7 @@ Instructions:
       maxOutputTokens: 50,
     })
 
-    return NextResponse.json({ insight: insight.trim().replace(/^"|"$/g, '') })
+    return NextResponse.json({ insight: insight.text.trim().replace(/^"|"$/g, '') })
   } catch (error) {
     console.error('[/api/insight] Error:', error)
     return NextResponse.json({ error: 'Internal server error', insight: "Stay focused and trust the process. Today is another opportunity to get closer to your goals." }, { status: 500 })

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { BookHeart, Plus, Calendar, Smile, Dumbbell, Loader2, Save, Search, ImageIcon, Flame } from 'lucide-react'
+import { BookHeart, Plus, Calendar, Smile, Dumbbell, Loader2, Save, Search, ImageIcon, Flame, ChevronLeft, ChevronRight } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
 import {
@@ -32,12 +32,40 @@ const moods = [
   { icon: '🤕', label: 'Sore', score: 1 }
 ]
 
+import { useDiaryData } from '@/lib/hooks/use-data'
+
 export default function DiaryPage() {
-  const [entries, setEntries] = useState<DiaryEntry[]>([])
-  const [loading, setLoading] = useState(true)
+  const { data: entriesData, isLoading, mutate } = useDiaryData()
+  const entries = entriesData || []
+  
   const [showAdd, setShowAdd] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterDate, setFilterDate] = useState('')
+  const [currentMonthDate, setCurrentMonthDate] = useState(() => {
+    const d = new Date()
+    return new Date(d.getFullYear(), d.getMonth(), 1)
+  })
+
+  // Calendar Math
+  const daysInMonth = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth() + 1, 0).getDate()
+  const firstDayOfMonth = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth(), 1).getDay()
+  
+  const calendarDays = useMemo(() => {
+    const days = []
+    for (let i = 0; i < firstDayOfMonth; i++) {
+      days.push(null)
+    }
+    for (let i = 1; i <= daysInMonth; i++) {
+      const d = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth(), i)
+      const dateStr = [
+        d.getFullYear(),
+        String(d.getMonth() + 1).padStart(2, '0'),
+        String(d.getDate()).padStart(2, '0')
+      ].join('-')
+      days.push({ date: d, dateStr })
+    }
+    return days
+  }, [currentMonthDate, daysInMonth, firstDayOfMonth])
   
   // Form State
   const [content, setContent] = useState('')
@@ -46,24 +74,7 @@ export default function DiaryPage() {
   const [photoUrl, setPhotoUrl] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  useEffect(() => {
-    loadEntries()
-  }, [])
 
-  async function loadEntries() {
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-
-    const { data } = await supabase
-      .from('diary_entries')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('entry_date', { ascending: false })
-
-    if (data) setEntries(data)
-    setLoading(false)
-  }
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault()
@@ -112,7 +123,7 @@ export default function DiaryPage() {
       setSelectedMood('Good')
       setWorkoutDone(true)
       setPhotoUrl('')
-      loadEntries()
+      mutate()
     }
     setIsSubmitting(false)
   }
@@ -126,11 +137,11 @@ export default function DiaryPage() {
     })
   }, [entries, searchQuery, filterDate])
 
-  // Chart Data (Last 14 days)
+  // Chart Data (Last 30 days)
   const chartData = useMemo(() => {
     const data = []
     const today = new Date()
-    for (let i = 13; i >= 0; i--) {
+    for (let i = 29; i >= 0; i--) {
       const d = new Date(today)
       d.setDate(d.getDate() - i)
       const dateStr = d.toISOString().split('T')[0]
@@ -170,8 +181,19 @@ export default function DiaryPage() {
     return streak
   }, [entries])
 
-  if (loading) {
-    return <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-gold" /></div>
+  if (isLoading) {
+    return (
+      <div className="relative min-h-screen px-4 pt-8">
+        <div className="max-w-4xl mx-auto space-y-8 animate-pulse">
+          <div className="h-10 w-48 bg-white/5 rounded-lg"></div>
+          <div className="h-32 bg-white/5 rounded-[2rem]"></div>
+          <div className="space-y-4 mt-8">
+            <div className="h-48 bg-white/5 rounded-[2rem]"></div>
+            <div className="h-48 bg-white/5 rounded-[2rem]"></div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -203,26 +225,76 @@ export default function DiaryPage() {
           </div>
         </motion.div>
 
-        {/* Mood Chart */}
-        {entries.length > 0 && (
-           <motion.div className="glass-card p-6 rounded-[2rem]" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Mood Trend (14 Days)</h3>
-              <div className="h-[150px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#888', fontSize: 10 }} />
-                    <YAxis domain={[1, 5]} hide />
-                    <Tooltip 
-                      contentStyle={{ backgroundColor: '#111', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '0.5rem', color: '#fff' }}
-                      formatter={(value: any) => [moods.find(m => m.score === value)?.label || 'Unknown', 'Mood']}
-                    />
-                    <Line type="monotone" dataKey="score" stroke="#D4AF6A" strokeWidth={3} dot={{ fill: '#D4AF6A', r: 4 }} connectNulls />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-           </motion.div>
-        )}
+        {/* Analytics Grid */}
+        <div className="grid md:grid-cols-2 gap-6">
+          {/* Calendar View */}
+          <motion.div className="glass-card p-6 rounded-[2rem] flex flex-col" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+             <div className="flex items-center justify-between mb-4">
+               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                 {currentMonthDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+               </h3>
+               <div className="flex items-center gap-2">
+                 <button onClick={() => setCurrentMonthDate(new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth() - 1, 1))} className="p-1 hover:bg-white/10 rounded-lg text-muted-foreground hover:text-white transition-colors">
+                   <ChevronLeft className="w-5 h-5" />
+                 </button>
+                 <button onClick={() => setCurrentMonthDate(new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth() + 1, 1))} className="p-1 hover:bg-white/10 rounded-lg text-muted-foreground hover:text-white transition-colors">
+                   <ChevronRight className="w-5 h-5" />
+                 </button>
+               </div>
+             </div>
+             
+             <div className="grid grid-cols-7 gap-1">
+               {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
+                 <div key={d} className="text-center text-xs font-bold text-muted-foreground py-2">{d}</div>
+               ))}
+               {calendarDays.map((dayObj, i) => {
+                 if (!dayObj) return <div key={`empty-${i}`} />
+                 const hasEntry = entries.some(e => e.entry_date === dayObj.dateStr)
+                 const isSelected = filterDate === dayObj.dateStr
+                 return (
+                   <button 
+                     key={dayObj.dateStr}
+                     onClick={() => setFilterDate(isSelected ? '' : dayObj.dateStr)}
+                     className={`aspect-square flex items-center justify-center rounded-full text-sm font-medium transition-colors ${
+                        isSelected ? 'bg-gold text-black glow-gold' 
+                        : hasEntry ? 'bg-gold/20 text-gold font-bold border border-gold/30'
+                        : 'hover:bg-white/5 text-muted-foreground hover:text-white'
+                     }`}
+                   >
+                     {dayObj.date.getDate()}
+                   </button>
+                 )
+               })}
+             </div>
+             {filterDate && (
+               <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between">
+                 <p className="text-xs text-muted-foreground">Showing entries for: <span className="text-gold font-bold">{new Date(filterDate).toLocaleDateString()}</span></p>
+                 <button onClick={() => setFilterDate('')} className="text-xs text-muted-foreground hover:text-white underline">Clear</button>
+               </div>
+             )}
+          </motion.div>
+
+          {/* Mood Chart */}
+          {entries.length > 0 && (
+             <motion.div className="glass-card p-6 rounded-[2rem] flex flex-col" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Mood Trend (30 Days)</h3>
+                <div className="flex-1 min-h-[200px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#888', fontSize: 10 }} />
+                      <YAxis domain={[1, 5]} hide />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: '#111', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '0.5rem', color: '#fff' }}
+                        formatter={(value: any) => [moods.find(m => m.score === value)?.label || 'Unknown', 'Mood']}
+                      />
+                      <Line type="monotone" dataKey="score" stroke="#D4AF6A" strokeWidth={3} dot={{ fill: '#D4AF6A', r: 4 }} connectNulls />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+             </motion.div>
+          )}
+        </div>
 
       <AnimatePresence>
         {showAdd && (

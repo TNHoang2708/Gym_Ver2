@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { generateObject } from 'ai'
-import { createOpenAI } from '@ai-sdk/openai'
+import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { z } from 'zod'
 
 // Allow large image payloads
@@ -16,14 +16,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'No image provided' }, { status: 400 })
     }
 
-    const customOpenAI = createOpenAI({
-      baseURL: 'https://apikey.maivangia.com/v1',
-      apiKey: process.env.MAIVANGIA_API_KEY || 'sk-bb8321890b1d3627-7e7dy0-ce9c37a4',
+    const google = createGoogleGenerativeAI({
+      apiKey: process.env.GEMINI_API_KEY,
     })
 
-    // Call Claude Vision to analyze the image
+    // Call Gemini Vision to analyze the image
     const { object } = await generateObject({
-      model: customOpenAI('cx/gpt-5.4-mini'),
+      model: google('gemini-2.5-flash'),
       schema: z.object({
         foodName: z.string().describe('The name of the meal or food item identified in the image.'),
         calories: z.number().describe('Estimated total calories for the portion shown.'),

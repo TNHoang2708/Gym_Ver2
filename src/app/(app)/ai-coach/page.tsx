@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Send, Sparkles, Loader2, Info } from 'lucide-react'
+import { Send, Sparkles, Loader2, Info, ChevronDown, ChevronUp } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import ReactMarkdown from 'react-markdown'
-import type { ChatMessage } from '@/types'
+import type { ChatMessage, WorkoutSchedule } from '@/types'
 
 export default function AICoachPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -39,10 +39,11 @@ export default function AICoachPage() {
 
     if (data && data.length > 0) {
       setMessages(data as ChatMessage[])
+      setInitLoading(false)
     } else {
-      await sendGreeting()
+      setInitLoading(false)
+      sendGreeting()
     }
-    setInitLoading(false)
   }
 
   async function sendGreeting() {
@@ -107,7 +108,7 @@ export default function AICoachPage() {
 
   if (initLoading) {
     return (
-      <div className="flex-1 flex items-center justify-center">
+      <div className="flex flex-col h-[calc(100vh-6rem)] md:h-[calc(100vh-2rem)] items-center justify-center max-w-4xl mx-auto">
         <Loader2 className="w-8 h-8 animate-spin text-gold" />
       </div>
     )
@@ -117,7 +118,7 @@ export default function AICoachPage() {
     <div className="flex flex-col h-[calc(100vh-6rem)] md:h-[calc(100vh-2rem)] max-w-4xl mx-auto glass-card rounded-[2rem] overflow-hidden relative">
       
       {/* Header */}
-      <div className="h-16 px-6 border-b border-white/5 flex items-center justify-between bg-black/20 backdrop-blur-md absolute top-0 left-0 right-0 z-10">
+      <div className="h-16 shrink-0 px-6 border-b border-white/5 flex items-center justify-between bg-black/20 backdrop-blur-md z-10 relative">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-gold/10 flex items-center justify-center glow-gold">
             <Sparkles className="w-5 h-5 text-gold" />
@@ -135,7 +136,7 @@ export default function AICoachPage() {
       </div>
 
       {/* Chat Area */}
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 pt-20 pb-24 space-y-6">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
         <AnimatePresence initial={false}>
           {messages.map((msg) => {
             const isUser = msg.role === 'user'
@@ -160,11 +161,7 @@ export default function AICoachPage() {
                 
                 {/* Schedule Card (if attached) */}
                 {msg.metadata?.schedule && (
-                  <div className="mt-2 w-full max-w-[85%] md:max-w-[75%] glass-card p-4 rounded-2xl border-gold/20 glow-gold">
-                    <h4 className="text-xs font-semibold text-gold uppercase tracking-wider mb-2">New Workout Schedule</h4>
-                    <p className="text-sm text-foreground font-medium">{msg.metadata.schedule.name}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{msg.metadata.schedule.days.length} workout days</p>
-                  </div>
+                  <ScheduleCard schedule={msg.metadata.schedule} />
                 )}
               </motion.div>
             )
@@ -188,7 +185,7 @@ export default function AICoachPage() {
       </div>
 
       {/* Input Area */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-background via-background to-transparent">
+      <div className="shrink-0 p-4 bg-black/20 backdrop-blur-md border-t border-white/5 z-10">
         <form 
           onSubmit={handleSend}
           className="relative max-w-3xl mx-auto flex items-end gap-2 bg-secondary border border-border rounded-2xl p-2 shadow-2xl focus-within:border-gold/50 transition-colors"
@@ -218,3 +215,68 @@ export default function AICoachPage() {
     </div>
   )
 }
+
+function ScheduleCard({ schedule }: { schedule: WorkoutSchedule }) {
+  const [expanded, setExpanded] = useState(false)
+  
+  return (
+    <div className="mt-2 w-full max-w-[95%] md:max-w-[85%] glass-card p-4 rounded-2xl border-gold/20 glow-gold overflow-hidden">
+      <button 
+        onClick={() => setExpanded(!expanded)} 
+        className="w-full flex items-center justify-between text-left"
+      >
+        <div>
+          <h4 className="text-xs font-semibold text-gold uppercase tracking-wider mb-1">New Workout Schedule</h4>
+          <p className="text-sm text-foreground font-medium">{schedule.name}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{schedule.days?.length || 0} workout days</p>
+        </div>
+        {expanded ? <ChevronUp className="w-5 h-5 text-gold" /> : <ChevronDown className="w-5 h-5 text-gold" />}
+      </button>
+
+      <AnimatePresence>
+        {expanded && (
+          <motion.div 
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="mt-4 pt-4 border-t border-white/5 space-y-4"
+          >
+            {schedule.days?.map((day, i) => (
+              <div key={i} className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-bold text-white">{day.day}</p>
+                  {day.muscle_groups?.length > 0 && (
+                    <span className="text-[10px] uppercase tracking-wider text-gold px-2 py-0.5 rounded-full bg-gold/10">
+                      {day.muscle_groups.join(', ')}
+                    </span>
+                  )}
+                </div>
+                {day.exercises?.length > 0 ? (
+                  <ul className="space-y-2">
+                    {day.exercises.map((ex, j) => (
+                      <li key={j} className="text-xs bg-black/20 p-2 rounded-lg flex flex-col gap-1">
+                        <div className="flex justify-between items-start">
+                          <span className="font-medium text-white">{ex.name}</span>
+                          <span className="text-gold whitespace-nowrap ml-2">{ex.sets} x {ex.reps}</span>
+                        </div>
+                        {(ex.notes || ex.rest_seconds) && (
+                          <div className="text-muted-foreground flex justify-between">
+                            <span>{ex.notes}</span>
+                            {ex.rest_seconds && <span>Rest: {ex.rest_seconds}s</span>}
+                          </div>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-xs text-muted-foreground italic">Rest day or active recovery.</p>
+                )}
+              </div>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
