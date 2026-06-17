@@ -60,7 +60,7 @@ export default function ExerciseLibraryPage() {
 
   return (
     <div className="min-h-screen pb-24 pt-8 px-4 max-w-4xl mx-auto relative">
-      <div className="absolute top-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-gold/5 blur-[120px] rounded-full transform-gpu pointer-events-none" />
+      <div className="absolute top-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-[radial-gradient(circle,rgba(212,175,106,0.15)_0%,transparent_70%)] rounded-full transform-gpu pointer-events-none" />
 
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
         <h1 className="text-3xl md:text-4xl font-heading font-bold text-foreground">Exercise <span className="text-gradient-gold">Library</span></h1>

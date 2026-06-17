@@ -89,8 +89,8 @@ export default async function OnboardingWelcomePage() {
     <div className="relative min-h-screen bg-background flex flex-col items-center justify-center px-6 py-12">
       {/* Ambient Background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        <div className="absolute top-[20%] right-[-10%] w-[60vw] h-[60vw] bg-gold/5 blur-[120px] rounded-full transform-gpu" />
-        <div className="absolute bottom-[10%] left-[-20%] w-[50vw] h-[50vw] bg-gold/5 blur-[100px] rounded-full transform-gpu" />
+        <div className="absolute top-[20%] right-[-10%] w-[60vw] h-[60vw] bg-[radial-gradient(circle,rgba(212,175,106,0.15)_0%,transparent_70%)] rounded-full transform-gpu" />
+        <div className="absolute bottom-[10%] left-[-20%] w-[50vw] h-[50vw] bg-[radial-gradient(circle,rgba(212,175,106,0.15)_0%,transparent_70%)] rounded-full transform-gpu" />
       </div>
 
       <div className="relative z-10 max-w-lg w-full space-y-8">

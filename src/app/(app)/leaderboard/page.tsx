@@ -61,8 +61,8 @@ export default function LeaderboardPage() {
   return (
     <div className="min-h-screen pb-24 pt-8 px-4 max-w-3xl mx-auto relative">
       {/* Ambient Orbs */}
-      <div className="absolute top-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-gold/5 blur-[120px] rounded-full transform-gpu pointer-events-none" />
-      <div className="absolute bottom-[20%] left-[-20%] w-[40vw] h-[40vw] bg-gold/5 blur-[100px] rounded-full transform-gpu pointer-events-none" />
+      <div className="absolute top-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-[radial-gradient(circle,rgba(212,175,106,0.15)_0%,transparent_70%)] rounded-full transform-gpu pointer-events-none" />
+      <div className="absolute bottom-[20%] left-[-20%] w-[40vw] h-[40vw] bg-[radial-gradient(circle,rgba(212,175,106,0.15)_0%,transparent_70%)] rounded-full transform-gpu pointer-events-none" />
 
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-10 relative z-10">
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gold/10 mb-4 border border-gold/20">

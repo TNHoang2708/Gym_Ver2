@@ -20,8 +20,8 @@ export default function ProUpgradePage() {
   return (
     <div className="min-h-screen pb-20 pt-6 px-4 relative overflow-hidden">
       {/* Background Orbs */}
-      <div className="absolute top-[-20%] right-[-20%] w-[60vw] h-[60vw] bg-gold/10 blur-[150px] transform-gpu pointer-events-none z-0 rounded-full" />
-      <div className="absolute bottom-0 left-[-20%] w-[50vw] h-[50vw] bg-gold/5 blur-[120px] transform-gpu pointer-events-none z-0 rounded-full" />
+      <div className="absolute top-[-20%] right-[-20%] w-[60vw] h-[60vw] bg-[radial-gradient(circle,rgba(212,175,106,0.15)_0%,transparent_70%)] transform-gpu pointer-events-none z-0 rounded-full" />
+      <div className="absolute bottom-0 left-[-20%] w-[50vw] h-[50vw] bg-[radial-gradient(circle,rgba(212,175,106,0.15)_0%,transparent_70%)] transform-gpu pointer-events-none z-0 rounded-full" />
       
       <div className="max-w-md mx-auto relative z-10">
         <Link href="/profile" className="inline-flex items-center text-sm text-muted-foreground hover:text-gold transition-colors mb-8">
@@ -48,7 +48,7 @@ export default function ProUpgradePage() {
           transition={{ delay: 0.1 }}
           className="glass-card rounded-[2.5rem] p-8 mb-8 relative border-gold/30 glow-gold"
         >
-          <div className="absolute -top-4 -right-4 w-24 h-24 bg-gold/20 blur-[30px] rounded-full" />
+          <div className="absolute -top-4 -right-4 w-24 h-24 bg-[radial-gradient(circle,rgba(212,175,106,0.15)_0%,transparent_70%)] rounded-full" />
           
           <div className="mb-6 border-b border-white/10 pb-6">
             <div className="flex items-end gap-2 mb-2">

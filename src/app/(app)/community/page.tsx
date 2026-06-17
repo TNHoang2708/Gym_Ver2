@@ -65,7 +65,7 @@ export default function CommunityFeedPage() {
         animate={{ opacity: 1, y: 0 }}
         className="glass-card rounded-3xl p-6 mb-8 border-gold/30 glow-gold relative overflow-hidden"
       >
-        <div className="absolute top-0 right-0 w-32 h-32 bg-gold/10 blur-[40px] pointer-events-none rounded-full" />
+        <div className="absolute top-0 right-0 w-32 h-32 bg-[radial-gradient(circle,rgba(212,175,106,0.15)_0%,transparent_70%)] pointer-events-none rounded-full" />
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2 rounded-xl bg-gold/10">
             <Flame className="w-5 h-5 text-gold" />

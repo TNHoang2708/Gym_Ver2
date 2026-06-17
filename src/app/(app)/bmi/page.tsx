@@ -212,8 +212,8 @@ export default function BMIPage() {
     <div className="relative min-h-screen">
       {/* Ambient Background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        <div className="absolute top-[-10%] right-[-20%] w-[50vw] h-[50vw] bg-gold/5 blur-[120px] rounded-full transform-gpu" />
-        <div className="absolute bottom-[10%] left-[-10%] w-[40vw] h-[40vw] bg-gold/5 blur-[100px] rounded-full transform-gpu" />
+        <div className="absolute top-[-10%] right-[-20%] w-[50vw] h-[50vw] bg-[radial-gradient(circle,rgba(212,175,106,0.15)_0%,transparent_70%)] rounded-full transform-gpu" />
+        <div className="absolute bottom-[10%] left-[-10%] w-[40vw] h-[40vw] bg-[radial-gradient(circle,rgba(212,175,106,0.15)_0%,transparent_70%)] rounded-full transform-gpu" />
       </div>
 
       <div className="relative z-10 max-w-5xl mx-auto space-y-8 pb-20 px-4 sm:px-6 lg:px-8 pt-8">

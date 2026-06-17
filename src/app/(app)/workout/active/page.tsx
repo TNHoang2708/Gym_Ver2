@@ -247,7 +247,7 @@ export default function ActiveWorkoutPage() {
 
     return (
       <div className="min-h-screen relative flex flex-col items-center justify-center p-6 overflow-hidden">
-        <div className="absolute inset-0 bg-gold/5 blur-[100px] pointer-events-none" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle,rgba(212,175,106,0.15)_0%,transparent_70%)] pointer-events-none" />
         
         <motion.div 
           initial={{ scale: 0.8, opacity: 0 }}
@@ -300,7 +300,7 @@ export default function ActiveWorkoutPage() {
 
   return (
     <div className="min-h-screen pb-20 pt-6 px-4 max-w-md mx-auto relative">
-      <div className="absolute top-0 right-[-20%] w-[60vw] h-[60vw] bg-gold/10 blur-[120px] transform-gpu pointer-events-none z-0" />
+      <div className="absolute top-0 right-[-20%] w-[60vw] h-[60vw] bg-[radial-gradient(circle,rgba(212,175,106,0.15)_0%,transparent_70%)] transform-gpu pointer-events-none z-0" />
       
       {/* Header */}
       <div className="flex items-center justify-between mb-8 relative z-10">
