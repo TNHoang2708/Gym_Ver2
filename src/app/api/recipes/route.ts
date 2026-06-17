@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 import { generateObject } from 'ai'
-import { openai } from '@ai-sdk/openai'
+import { createOpenAI } from '@ai-sdk/openai'
 import { z } from 'zod'
 
-export async function POST(req: Request) {
+// Force Node.js runtime for API routes
+export const runtime = 'nodejs'
+
+export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
     const { targetCalories, targetProtein, dietaryLifestyles, allergies } = body
@@ -12,8 +16,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing target macros' }, { status: 400 })
     }
 
+    const customOpenAI = createOpenAI({
+      baseURL: 'https://apikey.maivangia.com/v1',
+      apiKey: process.env.MAIVANGIA_API_KEY || 'sk-bb8321890b1d3627-7e7dy0-ce9c37a4',
+    })
+
     const { object } = await generateObject({
-      model: openai('gpt-4o-mini'),
+      model: customOpenAI('cx/gpt-5.4-mini'),
       schema: z.object({
         mealName: z.string().describe('The name of the recipe'),
         macros: z.object({

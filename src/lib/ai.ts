@@ -1,5 +1,8 @@
+import { createOpenAI } from '@ai-sdk/openai'
+import { generateText } from 'ai'
+
 /**
- * AI Client for OpenAI-compatible endpoint
+ * AI Client for Custom OpenAI Endpoint
  */
 
 export interface AIMessage {
@@ -18,52 +21,42 @@ export interface AICallOptions {
 export async function callAIWithFallback(options: AICallOptions): Promise<string> {
   const { systemPrompt, history, userMessage, temperature = 0.8, maxOutputTokens = 2048 } = options
 
-  const messages: AIMessage[] = []
+  // Initialize custom OpenAI provider
+  const customOpenAI = createOpenAI({
+    baseURL: 'https://apikey.maivangia.com/v1',
+    apiKey: process.env.MAIVANGIA_API_KEY || 'sk-bb8321890b1d3627-7e7dy0-ce9c37a4',
+  })
   
-  if (systemPrompt) {
-    messages.push({ role: 'system', content: systemPrompt })
-  }
+  const model = customOpenAI('cx/gpt-5.4-mini')
 
-  messages.push(...history)
+  // Build the message array for AI SDK
+  const messages: any[] = history.map(m => ({
+    role: m.role === 'system' ? 'system' : m.role === 'user' ? 'user' : 'assistant',
+    content: m.content
+  }))
   
   if (userMessage) {
     messages.push({ role: 'user', content: userMessage })
   }
+  
+  console.log(`[AI] Calling Anthropic model: claude-sonnet-4-5 via custom endpoint...`)
 
-  const modelName = 'cx/gpt-5.4-mini'
-  const endpoint = 'https://apikey.maivangia.com/v1/chat/completions'
-  const apiKey = process.env.CUSTOM_OPENAI_API_KEY || 'sk-bb8321890b1d3627-7e7dy0-ce9c37a4'
+  try {
+    const { text } = await generateText({
+      model: model,
+      system: systemPrompt,
+      messages: messages,
+      temperature,
+      // maxTokens: maxOutputTokens,
+    })
 
-  console.log(`[AI] Calling ${endpoint} with model ${modelName}...`)
+    if (!text) {
+      throw new Error('[AI] Empty response from Anthropic endpoint')
+    }
 
-  const payload = {
-    model: modelName,
-    messages: messages,
-    temperature,
-    max_tokens: maxOutputTokens,
+    return text
+  } catch (error: any) {
+    console.error(`[AI] Error response:`, error)
+    throw new Error(`[AI] Anthropic API error: ${error.message}`)
   }
-
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify(payload)
-  })
-
-  if (!response.ok) {
-    const text = await response.text()
-    console.error(`[AI] Error response:`, text)
-    throw new Error(`[AI] HTTP error ${response.status}: ${text}`)
-  }
-
-  const data = await response.json()
-  const text = data.choices?.[0]?.message?.content
-
-  if (!text) {
-    throw new Error('[AI] Empty response from endpoint')
-  }
-
-  return text
 }

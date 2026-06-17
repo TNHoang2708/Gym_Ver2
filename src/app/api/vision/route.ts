@@ -1,24 +1,29 @@
 import { NextResponse } from 'next/server'
 import { generateObject } from 'ai'
-import { openai } from '@ai-sdk/openai'
+import { createOpenAI } from '@ai-sdk/openai'
 import { z } from 'zod'
 
 // Allow large image payloads
 export const maxDuration = 30
-export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 export async function POST(req: Request) {
   try {
     const body = await req.json()
     const { image } = body
-
+    
     if (!image) {
-      return NextResponse.json({ error: 'Image is required' }, { status: 400 })
+      return NextResponse.json({ error: 'No image provided' }, { status: 400 })
     }
 
-    // Call GPT-4o Vision to analyze the image
+    const customOpenAI = createOpenAI({
+      baseURL: 'https://apikey.maivangia.com/v1',
+      apiKey: process.env.MAIVANGIA_API_KEY || 'sk-bb8321890b1d3627-7e7dy0-ce9c37a4',
+    })
+
+    // Call Claude Vision to analyze the image
     const { object } = await generateObject({
-      model: openai('gpt-4o'),
+      model: customOpenAI('cx/gpt-5.4-mini'),
       schema: z.object({
         foodName: z.string().describe('The name of the meal or food item identified in the image.'),
         calories: z.number().describe('Estimated total calories for the portion shown.'),
