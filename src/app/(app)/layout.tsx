@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/server'
 import { Wrench } from 'lucide-react'
 
 import { GlobalAnnouncement } from '@/components/GlobalAnnouncement'
+import { OnlineTracker } from '@/components/OnlineTracker'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -50,6 +51,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex flex-col min-h-screen">
+      <OnlineTracker />
       {announcementKey && <GlobalAnnouncement key={announcementKey} text={globalAnnouncement} />}
       
       <div className="flex-1 flex flex-col">

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { ArrowLeft, Users, Activity, DollarSign, Power, ShieldCheck, Server, Cpu, Trash2, Ban, CheckCircle, Search } from 'lucide-react'
+import { ArrowLeft, Users, Activity, DollarSign, Power, ShieldCheck, Server, Cpu, Trash2, Ban, CheckCircle, Search, Radio } from 'lucide-react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
@@ -31,9 +31,24 @@ export default function AdminDashboard() {
   const [customPrompt, setCustomPrompt] = useState('')
   const [announcement, setAnnouncement] = useState('')
   const [savingSettings, setSavingSettings] = useState(false)
+  const [onlineUsers, setOnlineUsers] = useState<{ [key: string]: any }>({})
 
   useEffect(() => {
     loadData()
+
+    const supabase = createClient()
+    const presenceChannel = supabase.channel('online-users')
+
+    presenceChannel
+      .on('presence', { event: 'sync' }, () => {
+        const state = presenceChannel.presenceState()
+        setOnlineUsers(state)
+      })
+      .subscribe()
+
+    return () => {
+      presenceChannel.unsubscribe()
+    }
   }, [])
 
   async function loadData() {
@@ -204,11 +219,12 @@ export default function AdminDashboard() {
         ) : (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
             {/* Metric Cards */}
-            <div className="grid md:grid-cols-3 gap-6">
+            <div className="grid md:grid-cols-4 gap-6">
               {[
-                { label: 'Total Registered Users', value: stats.totalUsers, icon: Users, color: 'text-blue-400' },
-                { label: 'Total Workouts Logged', value: stats.totalLogs, icon: Activity, color: 'text-gold' },
-                { label: 'Total API Cost ($)', value: `$${stats.totalCost.toFixed(4)}`, icon: DollarSign, color: 'text-green-400' },
+                { label: 'Live Users Online', value: Object.keys(onlineUsers).length, icon: Radio, color: 'text-green-500' },
+                { label: 'Total Registered', value: stats.totalUsers, icon: Users, color: 'text-blue-400' },
+                { label: 'Total Workouts', value: stats.totalLogs, icon: Activity, color: 'text-gold' },
+                { label: 'Total API Cost', value: `$${stats.totalCost.toFixed(4)}`, icon: DollarSign, color: 'text-purple-400' },
               ].map((m, i) => (
                 <div key={i} className="bg-black/40 border border-white/5 p-6 rounded-2xl relative overflow-hidden group">
                   <div className="absolute -right-4 -top-4 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
@@ -366,7 +382,15 @@ export default function AdminDashboard() {
                             className="group bg-white/[0.02] hover:bg-white/[0.06] transition-all duration-300 shadow-sm hover:shadow-md"
                           >
                             <td className="py-4 pl-5 pr-4 rounded-l-2xl border-y border-l border-white/5 group-hover:border-white/10 group-hover:border-l-gold/30">
-                              <p className="font-bold text-foreground group-hover:text-gold transition-colors">{user.email}</p>
+                              <div className="flex items-center gap-2">
+                                <p className="font-bold text-foreground group-hover:text-gold transition-colors">{user.email}</p>
+                                {onlineUsers[user.id] && (
+                                  <span className="relative flex h-2.5 w-2.5" title="Online now">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
+                                  </span>
+                                )}
+                              </div>
                               <p className="font-mono text-[10px] text-muted-foreground/50 mt-0.5">{user.id}</p>
                             </td>
                             <td className="py-4 pr-4 border-y border-white/5 group-hover:border-white/10">
