@@ -151,6 +151,7 @@ export default function CommunityFeedPage() {
           ))
         )}
       </div>
+      </div>
     </PullToRefresh>
   )
 }
