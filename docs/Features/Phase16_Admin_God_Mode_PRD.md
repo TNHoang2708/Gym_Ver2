@@ -23,6 +23,9 @@ Nâng cấp trang quản trị (Admin Portal) từ một bản nháp tĩnh (Phas
 - **Global Announcements (Thông báo toàn máy chủ):**
   - Chức năng tạo một thông báo khẩn cấp (vd: "Bảo trì lúc 12h đêm nay" hoặc "Có update mới").
   - Giao diện User sẽ hiện Toast Alert hoặc Banner cho tất cả những ai đang online.
+- **Real-time Presence (Theo dõi trực tuyến):**
+  - Theo dõi lượng user đang online theo thời gian thực sử dụng Supabase Presence.
+  - Hiển thị chấm xanh (Active Dot) bên cạnh tên user trong danh sách.
 
 ### 3.2. Out of Scope
 - Chỉnh sửa thông tin chi tiết (Tên, Profile) của User (sẽ cập nhật ở Phase sau).
@@ -40,7 +43,9 @@ Nâng cấp trang quản trị (Admin Portal) từ một bản nháp tĩnh (Phas
   - Thêm key `custom_ai_prompt` (lưu chuỗi text).
   - Thêm key `global_announcement` (lưu chuỗi text).
   - Thêm key `show_announcement` (boolean).
-- **Middleware/Layout:** Cập nhật `src/app/(app)/layout.tsx` kiểm tra flag `maintenance_mode` từ bảng `global_settings` để chặn render App nếu đang bảo trì. Đồng thời dùng để phát thông báo (`GlobalAnnouncement`) nếu có `global_announcement`.
+- **Middleware/Layout:** 
+  - Cập nhật `src/app/(app)/layout.tsx` kiểm tra flag `maintenance_mode` từ bảng `global_settings` để chặn render App nếu đang bảo trì. Đồng thời dùng để phát thông báo (`GlobalAnnouncement`) nếu có `global_announcement`.
+  - Tích hợp `<OnlineTracker />` để phát tín hiệu presence của user qua WebSocket.
 - **AI Core (`src/lib/system-prompt.ts`):**
   - Refactor lại hàm `buildSystemPrompt` thành async để fetch `custom_ai_prompt` từ DB và append vào sau core instruction.
 
