@@ -1,6 +1,7 @@
 import useSWR from 'swr'
 import { createClient } from '@/lib/supabase/client'
 import type { UserMemory, DailyNutritionSummary, WorkoutLog, WorkoutSchedule } from '@/types'
+import { calculateNutritionGoals } from '@/lib/nutrition'
 
 const supabase = createClient()
 
@@ -38,12 +39,18 @@ export function useDashboardData() {
         }),
         { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 }
       )
+
+      // Use real goals from user memory instead of hardcoded defaults
+      const goals = memory
+        ? calculateNutritionGoals(memory.hard_memory, memory.soft_memory)
+        : { goal_calories: 2000, goal_protein_g: 150, goal_carbs_g: 200, goal_fat_g: 65 }
+
       nutrition = {
         ...totals,
-        goal_calories: 2000,
-        goal_protein_g: 150,
-        goal_carbs_g: 200,
-        goal_fat_g: 65,
+        goal_calories: goals.goal_calories,
+        goal_protein_g: goals.goal_protein_g,
+        goal_carbs_g: goals.goal_carbs_g,
+        goal_fat_g: goals.goal_fat_g,
       }
     }
 

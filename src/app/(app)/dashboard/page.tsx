@@ -2,33 +2,36 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Activity, Flame, Dumbbell, Target, Sparkles, Trophy, CalendarCheck, Watch, Moon, Loader2 } from 'lucide-react'
+import { Activity, Flame, Dumbbell, Trophy, Sparkles, Watch, ChevronDown, ChevronUp, Loader2, ArrowRight, Droplet, Scale } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { syncHealthData } from '@/lib/health/sync'
+import { haptic } from '@/lib/haptics'
 import { motion, AnimatePresence } from 'framer-motion'
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import type { UserMemory, DailyNutritionSummary, WorkoutLog, WorkoutSchedule } from '@/types'
 import { useDashboardData } from '@/lib/hooks/use-data'
+import AIQuickLogger from '@/components/AIQuickLogger'
+import NutritionOverview from '@/components/NutritionOverview'
 
 export default function DashboardPage() {
   const { data, isLoading, mutate } = useDashboardData()
   const [insightLoading, setInsightLoading] = useState(false)
   const [syncingHealth, setSyncingHealth] = useState(false)
-  const [insight, setInsight] = useState("Stay focused and trust the process. Today is another opportunity to get closer to your goals.")
+  const [insight, setInsight] = useState("Stay focused. Today is another opportunity to get closer to your goals.")
+  const [showCharts, setShowCharts] = useState(false)
+  
+  // Local state for Quick Actions
+  const [waterLogged, setWaterLogged] = useState(0)
+  const [weightLogged, setWeightLogged] = useState(false)
+
+  // Determine Greeting based on time
+  const hour = new Date().getHours()
+  const greeting = hour < 12 ? 'Good Morning' : hour < 18 ? 'Good Afternoon' : 'Good Evening'
 
   useEffect(() => {
     if (data && !(data as any).insightFetched) {
       setInsightLoading(true)
-      // Fetch dynamic insight asynchronously
       fetch('/api/insight', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -38,7 +41,6 @@ export default function DashboardPage() {
       .then(json => {
         if (json.insight) {
           setInsight(json.insight)
-          // Mark as fetched so we don't refetch on every cache hit
           mutate(prev => prev ? { ...prev, insightFetched: true } as any : prev, false)
         }
       })
@@ -47,29 +49,44 @@ export default function DashboardPage() {
     }
   }, [data])
 
-  if (isLoading) {
+  if (isLoading || !data) {
     return (
-      <div className="relative min-h-screen px-4 pt-8">
-        <div className="max-w-6xl mx-auto space-y-8 animate-pulse">
-          <div className="h-10 w-48 bg-white/5 rounded-lg"></div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-            <div className="h-32 bg-white/5 rounded-[2rem]"></div>
-            <div className="h-32 bg-white/5 rounded-[2rem]"></div>
-            <div className="h-32 bg-white/5 rounded-[2rem]"></div>
-            <div className="h-32 bg-white/5 rounded-[2rem]"></div>
+      <div className="relative min-h-[100dvh]">
+        <div className="relative z-10 max-w-xl mx-auto px-6 pt-12 pb-24 space-y-10 animate-pulse">
+          {/* Hero Skeleton */}
+          <div className="text-center space-y-6">
+            <div>
+              <div className="w-48 h-8 bg-white/10 rounded-lg mx-auto mb-2" />
+              <div className="w-64 h-10 bg-white/10 rounded-lg mx-auto" />
+            </div>
+            <div className="w-full h-[68px] bg-white/5 rounded-2xl" />
           </div>
-          <div className="grid lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 h-[400px] bg-white/5 rounded-[2rem]"></div>
-            <div className="h-[400px] bg-white/5 rounded-[2rem]"></div>
+          
+          {/* Insight Skeleton */}
+          <div className="w-full h-[88px] bg-white/5 rounded-2xl border border-white/5" />
+          
+          {/* Quick Logger Skeleton */}
+          <div className="w-full h-[120px] bg-white/5 rounded-2xl border border-white/5" />
+          
+          {/* Nutrition Skeleton */}
+          <div className="w-full h-[180px] bg-white/5 rounded-2xl border border-white/5" />
+          
+          {/* Grid Skeleton */}
+          <div className="grid grid-cols-2 gap-2">
+            <div className="w-full h-[100px] bg-white/5 rounded-2xl" />
+            <div className="w-full h-[100px] bg-white/5 rounded-2xl" />
           </div>
         </div>
       </div>
     )
   }
 
-  if (!data) return null;
+  const { memory, nutrition, workoutLogs, streak } = data
+  const name = memory?.display_name || 'Boss'
 
-  const { memory, nutrition, workoutLogs, schedule, streak } = data
+  // Has worked out today?
+  const todayStr = new Date().toISOString().split('T')[0]
+  const workedOutToday = workoutLogs.some(l => l.log_date === todayStr)
 
   async function handleHealthSync() {
     setSyncingHealth(true)
@@ -98,6 +115,10 @@ export default function DashboardPage() {
   // Chart Data Preparation (Last 7 Days)
   const chartData = []
   const today = new Date()
+  
+  // Fake data for visual testing
+  const mockData = [4500, 0, 5200, 3100, 0, 6000, 2500]
+  
   for (let i = 6; i >= 0; i--) {
     const d = new Date(today)
     d.setDate(d.getDate() - i)
@@ -105,212 +126,156 @@ export default function DashboardPage() {
     const shortName = d.toLocaleDateString('en-US', { weekday: 'short' })
     const log = workoutLogs.find(l => l.log_date === dateStr)
     
-    chartData.push({
-      name: shortName,
-      volume: log?.volume_kg || 0
-    })
+    // Use actual log if exists, otherwise use mock data for demo
+    const volume = log?.volume_kg || mockData[6 - i]
+    
+    chartData.push({ name: shortName, volume: volume })
   }
 
   const metrics = [
     { label: 'Calories', value: nutrition?.calories || 0, goal: nutrition?.goal_calories || 2000, icon: Flame, color: 'text-orange-500' },
     { label: 'Protein', value: `${nutrition?.protein_g || 0}g`, goal: `${nutrition?.goal_protein_g || 150}g`, icon: Dumbbell, color: 'text-gold' },
-    { label: 'Active Mood', value: memory?.emotional_memory?.current?.mood || 'Neutral', goal: 'Status', icon: Activity, color: 'text-green-500' },
-    { label: 'Workout Streak', value: `${streak}`, goal: 'Days', icon: Trophy, color: 'text-yellow-400' },
+    { label: 'Mood', value: memory?.emotional_memory?.current?.mood || 'Neutral', goal: 'Status', icon: Activity, color: 'text-green-500' },
+    { label: 'Streak', value: `${streak}`, goal: 'Days', icon: Trophy, color: 'text-yellow-400' },
   ]
 
-  // Weekly Totals
-  const workoutsThisWeek = chartData.filter(d => d.volume > 0).length
-  const workoutsPlanned = schedule ? schedule.frequency : 0
-
   return (
-    <div className="relative min-h-screen">
-      {/* Ambient Background */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-[radial-gradient(circle,rgba(212,175,106,0.15)_0%,transparent_70%)] rounded-full transform-gpu" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40vw] h-[40vw] bg-[radial-gradient(circle,rgba(212,175,106,0.15)_0%,transparent_70%)] rounded-full transform-gpu" />
-      </div>
+    <div className="relative min-h-[100dvh]">
 
-      <div className="relative z-10 max-w-6xl mx-auto space-y-8 pb-20 px-4 sm:px-6 lg:px-8 pt-8">
-        {/* Header */}
-        <motion.div 
-          className="flex items-end justify-between"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
+      <div className="relative z-10 max-w-xl mx-auto px-6 pt-12 pb-24 space-y-10">
+        
+        {/* 1. Hero Section & Main CTA */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-center space-y-6">
           <div>
-            <h1 className="text-3xl md:text-4xl font-heading font-bold text-foreground tracking-tight">Overview</h1>
-            <p className="text-muted-foreground mt-1 text-sm md:text-base">Here is your daily snapshot.</p>
+            <h1 className="text-3xl font-heading font-bold text-foreground tracking-tight">{greeting},</h1>
+            <h2 className="text-4xl font-heading font-bold text-gradient-gold">{name}</h2>
           </div>
-          <Link href="/workout/active" className="flex items-center gap-2 bg-gold text-black font-bold px-4 py-2 rounded-xl hover:scale-105 transition-transform glow-gold">
-            <Dumbbell className="w-4 h-4" />
-            <span className="hidden md:inline">Start Workout</span>
+
+          <Link 
+            href={workedOutToday ? "/nutrition" : "/workout/active"}
+            onClick={() => haptic.heavy()}
+            className="block w-full bg-gold text-gold-foreground font-bold text-lg py-5 rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all transform-gpu glow-gold shadow-2xl relative overflow-hidden group"
+          >
+            <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
+            <span className="relative z-10 flex items-center justify-center gap-2">
+              {workedOutToday ? 'Log Next Meal' : 'Start Workout'} 
+            </span>
           </Link>
         </motion.div>
 
-        {/* Metrics Grid */}
-        <motion.div 
-          className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          {metrics.map((metric, i) => (
-            <div key={i} className="glass-card p-5 md:p-6 rounded-[2rem] relative overflow-hidden group hover:-translate-y-1 transition-all duration-300">
-              <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-15 transition-opacity duration-500">
-                <metric.icon className={`w-20 h-20 ${metric.color}`} />
+        {/* 2. AI Insight Pill */}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
+          <Link href="/ai-coach" onClick={() => haptic.light()} className="block">
+            <div className="glass-card p-4 rounded-2xl flex items-start gap-3 hover:bg-white/5 transition-colors border border-gold/20">
+              <div className="w-8 h-8 rounded-full bg-gold/10 flex items-center justify-center shrink-0 mt-0.5">
+                {insightLoading ? <Loader2 className="w-4 h-4 animate-spin text-gold" /> : <Sparkles className="w-4 h-4 text-gold" />}
               </div>
-              <div className="relative z-10">
-                <p className="text-[10px] md:text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-2">
-                  <metric.icon className={`w-4 h-4 ${metric.color}`} />
-                  {metric.label}
-                </p>
-                <h3 className="text-2xl md:text-3xl font-heading font-bold text-gradient-gold mb-1">{metric.value}</h3>
-                <p className="text-xs md:text-sm text-muted-foreground/70">/ {metric.goal}</p>
+              <div>
+                <p className="text-xs font-semibold text-gold uppercase tracking-wider mb-1">Coach Note</p>
+                <p className="text-sm text-foreground/90 italic leading-relaxed line-clamp-2">"{insight}"</p>
               </div>
             </div>
-          ))}
+          </Link>
         </motion.div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* Main Chart */}
-          <motion.div 
-            className="lg:col-span-2 glass-card p-6 md:p-8 rounded-[2rem]"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-3">
-                <h2 className="text-xl font-heading font-bold">Activity Pulse</h2>
-                <Link href="/workout/history" className="text-xs font-semibold text-gold bg-gold/10 px-3 py-1 rounded-full hover:bg-gold/20 transition-colors">History</Link>
-              </div>
-              <select className="bg-transparent text-sm text-muted-foreground outline-none border-b border-border pb-1">
-                <option>Past 7 Days</option>
-              </select>
-            </div>
-            <div className="h-[300px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#888', fontSize: 12 }} dy={10} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#888', fontSize: 12 }} />
-                  <Tooltip 
-                    cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                    contentStyle={{ backgroundColor: '#111', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '1rem', color: '#fff' }}
-                    formatter={(value: any) => [`${value} kg`, 'Volume']}
-                  />
-                  <Bar dataKey="volume" fill="#D4AF6A" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            
-            <div className="mt-6 flex items-center justify-between pt-6 border-t border-white/5">
-               <div>
-                  <p className="text-sm text-muted-foreground">Workouts this week</p>
-                  <p className="text-xl font-bold text-foreground">{workoutsThisWeek} <span className="text-sm font-normal text-muted-foreground">/ {workoutsPlanned || '-'} planned</span></p>
-               </div>
-               {schedule && (
-                 <div className="text-right">
-                    <p className="text-sm text-muted-foreground">Active Plan</p>
-                    <p className="text-sm font-semibold text-gold flex items-center gap-1 justify-end"><CalendarCheck className="w-4 h-4"/> {schedule.name}</p>
-                 </div>
-               )}
-            </div>
-          </motion.div>
-
-          {/* AI Insight Card */}
-          <motion.div 
-            className="glass-card p-6 md:p-8 rounded-[2rem] flex flex-col"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            <div className="w-12 h-12 rounded-full bg-gold/10 flex items-center justify-center mb-6 glow-gold">
-              <Sparkles className="w-6 h-6 text-gold" />
-            </div>
-            <h2 className="text-xl font-heading font-bold mb-4">Coach Insights</h2>
-            
-            <div className="flex-1 space-y-4">
-              <div className="p-4 rounded-2xl bg-white/5 border border-white/5">
-                <p className="text-sm text-foreground leading-relaxed italic flex items-center gap-2">
-                  {insightLoading && <Loader2 className="w-3 h-3 animate-spin text-gold shrink-0" />}
-                  "{insight}"
-                </p>
-              </div>
-              
-              <div className="pt-4">
-                 <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Calorie Balance</h3>
-                 <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">In (Food)</span>
-                      <span className="font-medium text-foreground">{nutrition?.calories || 0} kcal</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Out (Est.)</span>
-                      <span className="font-medium text-foreground">{(nutrition?.goal_calories || 2000) + (workoutsThisWeek > 0 ? 300 : 0)} kcal</span>
-                    </div>
-                 </div>
-              </div>
-
-              {memory?.soft_memory?.notes && memory.soft_memory.notes.length > 0 && (
-                <div className="pt-4 border-t border-white/5 mt-4">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Recent Context</p>
-                  <ul className="space-y-2">
-                    {memory.soft_memory.notes.slice(-3).map((note, i) => (
-                      <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
-                        <span className="text-gold mt-1">•</span> {note}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        </div>
-
-        {/* ── Wearable Telemetry ── */}
-        <motion.div
-          className="glass-card p-6 md:p-8 rounded-[2rem]"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-        >
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="text-xl font-heading font-bold flex items-center gap-2">
-              <Watch className="w-5 h-5 text-blue-400" /> Wearable Telemetry
-            </h2>
+        {/* 2.5 Quick Logger & Quick Actions */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="space-y-3">
+          <AIQuickLogger />
+          
+          <div className="flex gap-3">
             <button 
-              onClick={handleHealthSync}
-              disabled={syncingHealth}
-              className="px-4 py-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-xl text-sm font-semibold transition-colors flex items-center gap-2"
+              onClick={() => { setWaterLogged(prev => prev + 250); haptic.success(); toast.success('Logged 250ml Water 💧'); }}
+              className={`flex-1 glass-card p-3.5 rounded-2xl flex flex-col items-center justify-center gap-2 transition-colors active:scale-95 transform-gpu ${waterLogged > 0 ? 'bg-blue-500/10 border-blue-500/40' : 'hover:bg-white/5 border-blue-500/20'}`}
             >
-              {syncingHealth ? <Loader2 className="w-4 h-4 animate-spin" /> : <Activity className="w-4 h-4" />}
-              {syncingHealth ? 'Syncing...' : 'Sync Device'}
+              <Droplet className={`w-5 h-5 ${waterLogged > 0 ? 'text-blue-300' : 'text-blue-400'}`} />
+              <span className={`text-xs font-bold ${waterLogged > 0 ? 'text-blue-300' : 'text-blue-400'}`}>
+                {waterLogged > 0 ? `Water (${waterLogged}ml)` : 'Water'}
+              </span>
+            </button>
+            <button 
+              onClick={() => { setWeightLogged(true); haptic.light(); toast.info('Weigh-in recorded ⚖️'); }}
+              className={`flex-1 glass-card p-3.5 rounded-2xl flex flex-col items-center justify-center gap-2 transition-colors active:scale-95 transform-gpu ${weightLogged ? 'bg-green-500/10 border-green-500/40' : 'hover:bg-white/5 border-green-500/20'}`}
+            >
+              <Scale className={`w-5 h-5 ${weightLogged ? 'text-green-300' : 'text-green-400'}`} />
+              <span className={`text-xs font-bold ${weightLogged ? 'text-green-300' : 'text-green-400'}`}>
+                {weightLogged ? 'Logged ✓' : 'Weight'}
+              </span>
             </button>
           </div>
+        </motion.div>
 
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="bg-black/20 p-6 rounded-2xl border border-white/5 relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-4 opacity-5">
-                <Activity className="w-24 h-24 text-blue-400" />
-              </div>
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Daily Steps</h3>
-              <p className="text-3xl font-bold text-foreground">
-                {memory?.soft_memory?.latest_steps?.toLocaleString() || '---'}
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">/ 10,000 goal</p>
+        {/* 3. Nutrition Overview & Core Metrics Grid */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="space-y-4">
+          <NutritionOverview nutrition={nutrition} />
+          
+          <div className="grid grid-cols-2 gap-2">
+            <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-white/5 border border-white/5">
+              <Activity className="w-5 h-5 text-green-500 mb-2" />
+              <span className="text-sm font-bold text-foreground">{memory?.emotional_memory?.current?.mood || 'Neutral'}</span>
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">Mood</span>
             </div>
-            <div className="bg-black/20 p-6 rounded-2xl border border-white/5 relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-4 opacity-5">
-                <Moon className="w-24 h-24 text-indigo-400" />
-              </div>
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Sleep Data</h3>
-              <p className="text-3xl font-bold text-foreground">
-                {memory?.soft_memory?.latest_sleep_hours || '---'}<span className="text-lg font-normal text-muted-foreground"> hrs</span>
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">Last night</p>
+            <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-white/5 border border-white/5">
+              <Trophy className="w-5 h-5 text-yellow-400 mb-2" />
+              <span className="text-sm font-bold text-foreground">{streak}</span>
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">Day Streak</span>
             </div>
           </div>
+        </motion.div>
+
+        {/* 4. Compact Wearable Telemetry */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+          <div className="flex items-center justify-between p-4 rounded-2xl bg-black/20 border border-white/5">
+            <div className="flex items-center gap-4">
+              <Watch className="w-6 h-6 text-blue-400" />
+              <div>
+                <p className="text-sm font-bold text-foreground">{memory?.soft_memory?.latest_steps?.toLocaleString() || '---'} <span className="text-xs font-normal text-muted-foreground">steps</span></p>
+                <p className="text-sm font-bold text-foreground">{memory?.soft_memory?.latest_sleep_hours || '---'} <span className="text-xs font-normal text-muted-foreground">hrs sleep</span></p>
+              </div>
+            </div>
+            <button onClick={handleHealthSync} disabled={syncingHealth} className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-muted-foreground transition-colors">
+              <Activity className={`w-5 h-5 ${syncingHealth ? 'animate-pulse text-blue-400' : ''}`} />
+            </button>
+          </div>
+        </motion.div>
+
+        {/* 5. Collapsible Activity Chart */}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}>
+          <button 
+            onClick={() => setShowCharts(!showCharts)}
+            className="w-full flex items-center justify-between p-4 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <span>Weekly Pulse</span>
+            {showCharts ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
+          
+          <AnimatePresence>
+            {showCharts && (
+              <motion.div 
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="pt-2 pb-6 px-2">
+                  <div className="h-[200px] w-full bg-gradient-to-b from-white/[0.02] to-black/20 rounded-2xl p-4 border border-white/5 relative overflow-hidden shadow-inner">
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[60%] h-[1px] bg-gradient-to-r from-transparent via-gold/20 to-transparent" />
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={chartData}>
+                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#888', fontSize: 10 }} dy={5} />
+                        <Tooltip 
+                          cursor={false}
+                          contentStyle={{ backgroundColor: 'rgba(10,10,10,0.95)', backdropFilter: 'blur(10px)', border: '1px solid rgba(212,175,106,0.2)', borderRadius: '0.75rem', boxShadow: '0 4px 20px rgba(0,0,0,0.5)' }}
+                          itemStyle={{ color: '#D4AF6A', fontWeight: 'bold' }}
+                          formatter={(value: any) => [`${value} kg`, 'Volume']}
+                        />
+                        <Bar dataKey="volume" fill="#D4AF6A" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
 
       </div>

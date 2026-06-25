@@ -22,10 +22,16 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
 
     if (error) {
-      toast.error(error.message)
+      if (error.message.includes('Invalid login credentials')) {
+        toast.error('Email or password is incorrect')
+      } else {
+        toast.error(error.message)
+      }
       setLoading(false)
       return
     }
+
+    toast.success('Signed in successfully!')
 
     router.push('/ai-coach')
     router.refresh()
@@ -36,11 +42,12 @@ export default function LoginPage() {
       <motion.div 
         className="glass-card rounded-[2rem] p-8 md:p-10 space-y-8 relative overflow-hidden"
         initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
         transition={{ duration: 0.5, type: 'spring' }}
       >
         {/* Glow effect inside card */}
-        <div className="absolute -top-24 -right-24 w-48 h-48 bg-gold/20 rounded-full blur-[60px] pointer-events-none" />
+        <div className="absolute -top-24 -right-24 w-48 h-48 bg-[radial-gradient(circle,rgba(140,224,255,0.2)_0%,transparent_70%)] rounded-full pointer-events-none" />
 
         {/* Logo */}
         <div className="text-center space-y-4 relative z-10">

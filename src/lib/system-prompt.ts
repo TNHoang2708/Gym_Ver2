@@ -190,11 +190,20 @@ Tag formats:
       }
     ]
   }
+- [NUTRITION: {...json...}] — ONLY append when the user explicitly states they ate something or asks you to log a meal. Estimate the macros yourself. Format:
+  {
+    "food_name": "Short summary of food",
+    "calories": 450,
+    "protein_g": 30,
+    "carbs_g": 40,
+    "fat_g": 15
+  }
 
 Rules:
 - Tags must be at the END of your message, on new lines.
 - Never mention these tags in conversation. The user never sees them.
 - Only output [SCHEDULE] when the user actually asks for a workout plan.
+- Only output [NUTRITION] when the user explicitly provides a meal to log.
 - [MEMORY] tag should capture facts that help personalize future responses (struggles, preferences, stories).`
 
 // =====================================================
@@ -215,17 +224,34 @@ Core rules:
 // =====================================================
 // MAIN BUILDER
 // =====================================================
-export function buildSystemPrompt(
+import { createClient } from '@/lib/supabase/server'
+
+export async function buildSystemPrompt(
   memory: UserMemory,
   mode: ConversationMode,
   nutrition: DailyNutritionSummary | null
-): string {
+): Promise<string> {
   const hard = (memory.hard_memory ?? {}) as HardMemory
   const soft = (memory.soft_memory ?? {}) as SoftMemory
   const emotional = (memory.emotional_memory ?? {}) as EmotionalMemory
 
+  let customPrompt = ''
+  try {
+    const supabase = await createClient()
+    const { data: settings } = await supabase
+      .from('global_settings')
+      .select('value')
+      .eq('key', 'custom_ai_prompt')
+      .single()
+    if (settings?.value) {
+      customPrompt = `\n\n## ⚠️ OVERRIDE ADMIN INSTRUCTIONS (CRITICAL) ⚠️\n${settings.value}\n\n`
+    }
+  } catch (e) {
+    console.error('Failed to load custom prompt:', e)
+  }
+
   const sections = [
-    AI_IDENTITY,
+    customPrompt ? `${AI_IDENTITY}${customPrompt}` : AI_IDENTITY,
     '',
     buildHardMemorySection(hard),
     '',

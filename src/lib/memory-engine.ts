@@ -164,47 +164,59 @@ export interface ParsedTags {
   emotion: { mood: MoodType; context?: string; is_heavy?: boolean } | null
   topics: string[]
   schedule: WorkoutSchedule | null
+  nutrition: { food_name: string; calories: number; protein_g: number; carbs_g: number; fat_g: number } | null
   cleanedText: string
 }
 
-const TAG_REGEX = /\[(MEMORY|EMOTION|TOPIC|SCHEDULE):([^\]]+)\]/g
+const TAG_REGEX = /\[(MEMORY|EMOTION|TOPIC):([^\]]+)\]/g
 
 export function parseAITags(rawText: string): ParsedTags {
   const memories: string[] = []
   const topics: string[] = []
   let emotion: ParsedTags['emotion'] = null
   let schedule: WorkoutSchedule | null = null
+  let nutrition: ParsedTags['nutrition'] = null
 
   let cleanedText = rawText
 
-  // 1. Extract and remove the SCHEDULE tag first, as its JSON contents break simple regex
-  const scheduleStart = cleanedText.indexOf('[SCHEDULE:')
-  if (scheduleStart !== -1) {
-    let tagEnd = cleanedText.indexOf(']', scheduleStart) // fallback end
+  // Helper to extract JSON blocks
+  const extractJsonBlock = (tagPrefix: string): any => {
+    const startIdx = cleanedText.indexOf(tagPrefix)
+    if (startIdx === -1) return null
+
+    let tagEnd = cleanedText.indexOf(']', startIdx)
     try {
-      const jsonStart = cleanedText.indexOf('{', scheduleStart)
+      const jsonStart = cleanedText.indexOf('{', startIdx)
       const jsonEnd = cleanedText.lastIndexOf('}')
       
-      // Ensure the braces we found belong to this schedule tag
-      if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart && jsonStart > scheduleStart) {
+      if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart && jsonStart > startIdx) {
         const jsonStr = cleanedText.slice(jsonStart, jsonEnd + 1)
-        schedule = JSON.parse(jsonStr)
+        const parsed = JSON.parse(jsonStr)
         
-        // The tag ends at the first ']' after the JSON object
         const closingBracketIdx = cleanedText.indexOf(']', jsonEnd)
         if (closingBracketIdx !== -1) {
           tagEnd = closingBracketIdx
         } else {
           tagEnd = jsonEnd
         }
+        
+        cleanedText = cleanedText.slice(0, startIdx) + cleanedText.slice(tagEnd + 1)
+        return parsed
       }
     } catch (e) {
-      console.warn('[Tags] Failed to parse SCHEDULE JSON:', e)
+      console.warn(`[Tags] Failed to parse ${tagPrefix} JSON:`, e)
     }
     
-    // Remove the entire SCHEDULE block from the text
-    cleanedText = cleanedText.slice(0, scheduleStart) + cleanedText.slice(tagEnd + 1)
+    // If we fail to parse, still remove the tag to avoid showing it to user
+    if (tagEnd !== -1) {
+      cleanedText = cleanedText.slice(0, startIdx) + cleanedText.slice(tagEnd + 1)
+    }
+    return null
   }
+
+  // 1. Extract JSON tags (SCHEDULE, NUTRITION) first to avoid regex breaking on nested braces
+  schedule = extractJsonBlock('[SCHEDULE:')
+  nutrition = extractJsonBlock('[NUTRITION:')
 
   // 2. Parse remaining simple tags (MEMORY, EMOTION, TOPIC)
   let match: RegExpExecArray | null
@@ -245,7 +257,7 @@ export function parseAITags(rawText: string): ParsedTags {
 
   cleanedText = cleanedText.trim()
 
-  return { memories, emotion, topics, schedule, cleanedText }
+  return { memories, emotion, topics, schedule, nutrition, cleanedText }
 }
 
 // =====================================================

@@ -50,6 +50,7 @@ export default function ProfilePage() {
           weight: memData.hard_memory?.weight_kg?.toString() || ''
         })
         setDisplayName(memData.display_name || '')
+        setPhotoUrl(memData.hard_memory?.avatar_url || '')
         setDietaryLifestyles(memData.hard_memory?.dietary_lifestyles || [])
         setAllergiesText(memData.hard_memory?.allergies?.join(', ') || '')
       }
@@ -162,6 +163,32 @@ export default function ProfilePage() {
     setIsSubmitting(false)
   }
 
+  async function updatePhoto(e: React.FormEvent) {
+    e.preventDefault()
+    if (!memory) return
+    setIsSubmitting(true)
+    
+    const updatedHard = {
+      ...memory.hard_memory,
+      avatar_url: photoUrl
+    }
+
+    const supabase = createClient()
+    const { error } = await supabase
+      .from('user_memory')
+      .update({ hard_memory: updatedHard })
+      .eq('user_id', memory.user_id)
+      
+    if (error) {
+      toast.error('Failed to update photo')
+    } else {
+      toast.success('Photo updated')
+      setMemory({ ...memory, hard_memory: updatedHard })
+      setActiveModal(null)
+    }
+    setIsSubmitting(false)
+  }
+
   async function handleDeleteAccount() {
     // Note: Supabase requires admin privileges to completely delete a user via client.
     // For now, this is a mock implementation that signs the user out.
@@ -208,33 +235,45 @@ export default function ProfilePage() {
           <p className="text-muted-foreground mt-1 text-sm md:text-base">Manage your account and preferences.</p>
         </motion.div>
 
-        {/* User Card */}
+        {/* Premium User Card */}
         <motion.div 
-          className="glass-card p-8 rounded-[2rem] flex flex-col sm:flex-row items-center gap-6 relative overflow-hidden"
+          className="relative p-8 rounded-[2rem] flex flex-col sm:flex-row items-center gap-8 overflow-hidden group/card shadow-2xl border border-gold/30 bg-black/40 backdrop-blur-xl"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <div className="absolute top-0 right-0 w-64 h-64 bg-gold/5 rounded-full blur-[80px] pointer-events-none" />
+          {/* Animated Glow Background */}
+          <div className="absolute inset-0 bg-gradient-to-tr from-gold/5 via-transparent to-transparent opacity-50 group-hover/card:opacity-100 transition-opacity duration-700 pointer-events-none" />
+          <div className="absolute -top-32 -right-32 w-64 h-64 bg-gold/10 blur-[100px] rounded-full pointer-events-none" />
           
           <div className="relative group cursor-pointer" onClick={() => setActiveModal('photo')}>
-            <div className="w-24 h-24 rounded-full bg-black/20 border-2 border-gold/20 flex items-center justify-center shrink-0 relative z-10 overflow-hidden">
+            {/* Spinning Aura */}
+            <div className="absolute -inset-1 bg-gradient-to-r from-gold via-yellow-200 to-gold rounded-full opacity-20 group-hover:opacity-50 blur-md transition-opacity duration-500 animate-[spin_4s_linear_infinite]" />
+            
+            <div className="w-28 h-28 rounded-full bg-black border-2 border-gold/50 flex items-center justify-center shrink-0 relative z-10 overflow-hidden shadow-[0_0_30px_rgba(212,175,106,0.2)]">
               {photoUrl ? (
                  <img src={photoUrl} alt="Profile" className="w-full h-full object-cover" />
               ) : (
-                 <User className="w-10 h-10 text-gold" />
+                 <User className="w-12 h-12 text-gold" />
               )}
             </div>
-            <div className="absolute inset-0 bg-black/60 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity z-20">
-               <Camera className="w-6 h-6 text-white" />
+            
+            <div className="absolute inset-0 bg-black/60 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity z-20 backdrop-blur-sm">
+               <Camera className="w-8 h-8 text-white" />
+            </div>
+            
+            {/* VIP Badge */}
+            <div className="absolute -bottom-2 -right-2 bg-gradient-to-r from-gold to-yellow-500 text-black text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border-2 border-black z-30 shadow-lg transform-gpu -rotate-12">
+              VIP
             </div>
           </div>
+          
           <div className="text-center sm:text-left relative z-10">
-            <h2 className="text-2xl font-heading font-bold text-foreground">Athlete</h2>
-            <p className="text-gold font-medium mt-1">{userEmail}</p>
-            <div className="mt-3 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gold/10 border border-gold/20">
-              <div className="w-2 h-2 rounded-full bg-gold animate-pulse" />
-              <span className="text-xs font-semibold text-gold uppercase tracking-wider">Pro Member</span>
+            <h2 className="text-3xl font-heading font-black text-white tracking-tight drop-shadow-md">{displayName || 'Athlete'}</h2>
+            <p className="text-gold/80 font-medium mt-1 text-sm tracking-wide">{userEmail}</p>
+            <div className="mt-4 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gold/10 border border-gold/30 shadow-[0_0_15px_rgba(212,175,106,0.1)]">
+              <div className="w-2 h-2 rounded-full bg-gold animate-pulse shadow-[0_0_8px_#D4AF37]" />
+              <span className="text-xs font-bold text-gold uppercase tracking-widest">Forge Pro Member</span>
             </div>
           </div>
         </motion.div>
@@ -476,7 +515,7 @@ export default function ProfilePage() {
 
               {/* Photo Upload Modal */}
               {activeModal === 'photo' && (
-                <div className="space-y-6 pt-4">
+                <form onSubmit={updatePhoto} className="space-y-6 pt-4">
                   <div>
                     <h3 className="text-xl font-bold mb-2">Profile Photo</h3>
                     <p className="text-sm text-muted-foreground">Update your avatar using an image URL.</p>
@@ -486,10 +525,10 @@ export default function ProfilePage() {
                     placeholder="https://example.com/avatar.jpg"
                     className="w-full bg-black/20 border border-white/5 rounded-2xl p-4 text-foreground focus:outline-none focus:ring-1 focus:ring-gold"
                   />
-                  <button onClick={() => {toast.success('Photo updated'); setActiveModal(null)}} className="w-full py-4 bg-gold text-gold-foreground rounded-xl font-bold hover:bg-gold/90 transition-colors flex justify-center glow-gold">
-                    Set Photo
+                  <button type="submit" disabled={isSubmitting} className="w-full py-4 bg-gold text-gold-foreground rounded-xl font-bold hover:bg-gold/90 transition-colors flex justify-center glow-gold">
+                    {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Set Photo'}
                   </button>
-                </div>
+                </form>
               )}
 
               {/* Delete Account Modal */}

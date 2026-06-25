@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
       apiKey: process.env.GEMINI_API_KEY,
     })
 
-    const { object } = await generateObject({
+    const { object, usage } = await generateObject({
       model: google('gemini-2.5-flash'),
       schema: z.object({
         mealName: z.string().describe('The name of the recipe'),
@@ -44,6 +44,24 @@ The user has the following allergies: ${allergies?.length ? allergies.join(', ')
 
 Ensure the recipe respects their allergies and lifestyles strictly. Provide ingredients with exact measurements so the macros match exactly. Keep instructions simple and prep time realistic.`
     })
+
+    // Log telemetry
+    if (usage) {
+      import('@/lib/supabase/server').then(async ({ createClient }) => {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          const tokensUsed = usage.totalTokens || 0
+          const costEstimated = (tokensUsed / 1000) * 0.000150
+          await supabase.from('api_telemetry').insert({
+            user_id: user.id,
+            endpoint: '/api/recipes',
+            tokens_used: tokensUsed,
+            cost_estimated: costEstimated,
+          })
+        }
+      }).catch(console.error)
+    }
 
     return NextResponse.json({ recipe: object })
   } catch (error: any) {

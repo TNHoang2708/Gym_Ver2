@@ -10,6 +10,7 @@ import {
   Check,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { motion, AnimatePresence } from 'framer-motion'
 import type { HardMemory, SoftMemory } from '@/types'
 import { cn } from '@/lib/utils'
 
@@ -42,19 +43,19 @@ const STEPS: Step[] = [
     question: 'What\'s your gender?',
     subtitle: 'Helps calculate your nutrition targets accurately.',
     options: [
-      { value: 'male', label: 'Male', emoji: '♂' },
-      { value: 'female', label: 'Female', emoji: '♀' },
-      { value: 'other', label: 'Non-binary / Other', emoji: '⚧' },
+      { value: 'male', label: 'Male' },
+      { value: 'female', label: 'Female' },
+      { value: 'other', label: 'Non-binary / Other' },
     ],
   },
   {
     id: 2, field: 'age_group', memoryLayer: 'hard', type: 'single',
     question: 'Which age group are you in?',
     options: [
-      { value: '18-29', label: '18–29', emoji: '🔥' },
-      { value: '30-39', label: '30–39', emoji: '💪' },
-      { value: '40-49', label: '40–49', emoji: '⚡' },
-      { value: '50+', label: '50+', emoji: '🏆' },
+      { value: '18-29', label: '18–29' },
+      { value: '30-39', label: '30–39' },
+      { value: '40-49', label: '40–49' },
+      { value: '50+', label: '50+' },
     ],
   },
   {
@@ -71,39 +72,39 @@ const STEPS: Step[] = [
     id: 5, field: 'body_type', memoryLayer: 'hard', type: 'single',
     question: 'How would you describe your current body type?',
     options: [
-      { value: 'slim', label: 'Slim / Lean', emoji: '🌿' },
-      { value: 'average', label: 'Average build', emoji: '⚖️' },
-      { value: 'overweight', label: 'Carrying extra weight', emoji: '🔴' },
-      { value: 'muscular', label: 'Already muscular', emoji: '💪' },
+      { value: 'slim', label: 'Slim / Lean' },
+      { value: 'average', label: 'Average build' },
+      { value: 'overweight', label: 'Carrying extra weight' },
+      { value: 'muscular', label: 'Already muscular' },
     ],
   },
   {
     id: 6, field: 'experience_level', memoryLayer: 'soft', type: 'single',
     question: 'How experienced are you with training?',
     options: [
-      { value: 'beginner', label: 'Beginner', emoji: '🌱', },
-      { value: 'novice', label: 'Novice', emoji: '🔰' },
-      { value: 'intermediate', label: 'Intermediate', emoji: '⭐' },
-      { value: 'advanced', label: 'Advanced', emoji: '🏅' },
+      { value: 'beginner', label: 'Beginner' },
+      { value: 'novice', label: 'Novice' },
+      { value: 'intermediate', label: 'Intermediate' },
+      { value: 'advanced', label: 'Advanced' },
     ],
   },
   {
     id: 7, field: 'training_location', memoryLayer: 'soft', type: 'single',
     question: 'Where do you train?',
     options: [
-      { value: 'gym', label: 'Gym', emoji: '🏋️' },
-      { value: 'home', label: 'Home', emoji: '🏠' },
-      { value: 'both', label: 'Both', emoji: '🔄' },
+      { value: 'gym', label: 'Gym' },
+      { value: 'home', label: 'Home' },
+      { value: 'both', label: 'Both' },
     ],
   },
   {
     id: 8, field: 'current_frequency', memoryLayer: 'soft', type: 'single',
     question: 'How many days a week do you currently train?',
     options: [
-      { value: '0', label: 'Just starting out', emoji: '0️⃣' },
-      { value: '1-2', label: '1–2 days', emoji: '🐢' },
-      { value: '3-4', label: '3–4 days', emoji: '🚶' },
-      { value: '5+', label: '5+ days', emoji: '🏃' },
+      { value: '0', label: 'Just starting out' },
+      { value: '1-2', label: '1–2 days' },
+      { value: '3-4', label: '3–4 days' },
+      { value: '5+', label: '5+ days' },
     ],
   },
   {
@@ -111,71 +112,71 @@ const STEPS: Step[] = [
     question: 'Any injuries or medical conditions?',
     subtitle: 'Your coach will NEVER recommend exercises that could hurt you.',
     options: [
-      { value: 'none', label: 'None — all clear', emoji: '✅' },
-      { value: 'back', label: 'Back issues', emoji: '🔙' },
-      { value: 'knee', label: 'Knee problems', emoji: '🦵' },
-      { value: 'shoulder', label: 'Shoulder problems', emoji: '💪' },
-      { value: 'high_blood_pressure', label: 'High blood pressure', emoji: '❤️' },
-      { value: 'other', label: 'Other condition', emoji: '⚕️' },
+      { value: 'none', label: 'None — all clear' },
+      { value: 'back', label: 'Back issues' },
+      { value: 'knee', label: 'Knee problems' },
+      { value: 'shoulder', label: 'Shoulder problems' },
+      { value: 'high_blood_pressure', label: 'High blood pressure' },
+      { value: 'other', label: 'Other condition' },
     ],
   },
   {
     id: 10, field: 'main_goal', memoryLayer: 'soft', type: 'single',
     question: 'What\'s your main fitness goal?',
     options: [
-      { value: 'muscle_gain', label: 'Build muscle', emoji: '💪' },
-      { value: 'fat_loss', label: 'Lose fat', emoji: '🔥' },
-      { value: 'strength', label: 'Get stronger', emoji: '⚡' },
-      { value: 'general_health', label: 'General health', emoji: '❤️' },
+      { value: 'muscle_gain', label: 'Build muscle' },
+      { value: 'fat_loss', label: 'Lose fat' },
+      { value: 'strength', label: 'Get stronger' },
+      { value: 'general_health', label: 'General health' },
     ],
   },
   {
     id: 11, field: 'target_physique', memoryLayer: 'soft', type: 'single',
     question: 'What\'s your target physique?',
     options: [
-      { value: 'lean_toned', label: 'Lean & toned', emoji: '🏄' },
-      { value: 'muscular', label: 'Muscular', emoji: '🏋️' },
-      { value: 'athletic', label: 'Athletic', emoji: '⚽' },
-      { value: 'strong', label: 'Strong & powerful', emoji: '🦁' },
+      { value: 'lean_toned', label: 'Lean & toned' },
+      { value: 'muscular', label: 'Muscular' },
+      { value: 'athletic', label: 'Athletic' },
+      { value: 'strong', label: 'Strong & powerful' },
     ],
   },
   {
     id: 12, field: 'desired_frequency', memoryLayer: 'soft', type: 'single',
     question: 'How many days per week do you want to train?',
     options: [
-      { value: '3', label: '3 days', emoji: '🔰' },
-      { value: '4', label: '4 days', emoji: '⭐' },
-      { value: '5', label: '5 days', emoji: '🔥' },
-      { value: '6', label: '6 days', emoji: '💯' },
+      { value: '3', label: '3 days' },
+      { value: '4', label: '4 days' },
+      { value: '5', label: '5 days' },
+      { value: '6', label: '6 days' },
     ],
   },
   {
     id: 13, field: 'preferred_time', memoryLayer: 'soft', type: 'single',
     question: 'When do you prefer to train?',
     options: [
-      { value: 'morning', label: 'Morning', emoji: '🌅' },
-      { value: 'afternoon', label: 'Afternoon', emoji: '☀️' },
-      { value: 'evening', label: 'Evening', emoji: '🌙' },
-      { value: 'flexible', label: 'Flexible', emoji: '🔄' },
+      { value: 'morning', label: 'Morning' },
+      { value: 'afternoon', label: 'Afternoon' },
+      { value: 'evening', label: 'Evening' },
+      { value: 'flexible', label: 'Flexible' },
     ],
   },
   {
     id: 14, field: 'motivation', memoryLayer: 'soft', type: 'single',
     question: 'What motivates you most?',
     options: [
-      { value: 'health', label: 'Long-term health', emoji: '❤️' },
-      { value: 'appearance', label: 'Looking better', emoji: '✨' },
-      { value: 'confidence', label: 'Feeling confident', emoji: '🦁' },
-      { value: 'sport', label: 'Sport performance', emoji: '🏅' },
+      { value: 'health', label: 'Long-term health' },
+      { value: 'appearance', label: 'Looking better' },
+      { value: 'confidence', label: 'Feeling confident' },
+      { value: 'sport', label: 'Sport performance' },
     ],
   },
   {
     id: 15, field: 'commitment_level', memoryLayer: 'soft', type: 'single',
     question: 'How would you describe your commitment level?',
     options: [
-      { value: 'casual', label: 'Casual', emoji: '😎' },
-      { value: 'serious', label: 'Serious', emoji: '🎯' },
-      { value: 'hardcore', label: 'Hardcore', emoji: '🔥' },
+      { value: 'casual', label: 'Casual' },
+      { value: 'serious', label: 'Serious' },
+      { value: 'hardcore', label: 'Hardcore' },
     ],
   },
 ]
@@ -192,6 +193,7 @@ export default function OnboardingPage() {
   const [numInput, setNumInput] = useState('')
   const [multiSelected, setMultiSelected] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
+  const [direction, setDirection] = useState(1) // 1 = forward, -1 = backward
 
   const step = STEPS[currentStep]
   const progress = ((currentStep) / STEPS.length) * 100
@@ -238,6 +240,7 @@ export default function OnboardingPage() {
     if (isLast) {
       handleSubmit()
     } else {
+      setDirection(1)
       setCurrentStep((prev) => prev + 1)
       setNumInput('')
       setMultiSelected([])
@@ -246,6 +249,7 @@ export default function OnboardingPage() {
 
   function handleBack() {
     if (currentStep === 0) return
+    setDirection(-1)
     setCurrentStep((prev) => prev - 1)
     // Restore previous inputs
     const prevStep = STEPS[currentStep - 1]
@@ -304,7 +308,7 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="relative min-h-screen bg-background flex flex-col">
+    <div className="relative min-h-[100dvh] bg-background flex flex-col">
       {/* Ambient Background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
         <div className="absolute top-[20%] right-[-10%] w-[60vw] h-[60vw] bg-[radial-gradient(circle,rgba(212,175,106,0.15)_0%,transparent_70%)] rounded-full transform-gpu" />
@@ -334,11 +338,20 @@ export default function OnboardingPage() {
       </div>
 
       {/* Step content */}
-      <div className="flex-1 px-6 max-w-lg mx-auto w-full">
-        <div className="pt-4 pb-6 animate-fade-in-up" key={step.id}>
-          <h1 className="text-2xl font-bold tracking-tight mb-2" style={{ fontFamily: 'var(--font-space-grotesk)' }}>
-            {step.question}
-          </h1>
+      <div className="flex-1 px-6 max-w-lg mx-auto w-full overflow-hidden">
+        <AnimatePresence mode="wait" custom={direction}>
+          <motion.div 
+            key={step.id}
+            custom={direction}
+            initial={{ opacity: 0, x: direction > 0 ? 20 : -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: direction > 0 ? -20 : 20 }}
+            transition={{ duration: 0.25, ease: 'easeInOut' }}
+            className="pt-4 pb-6"
+          >
+            <h1 className="text-2xl font-bold tracking-tight mb-2" style={{ fontFamily: 'var(--font-space-grotesk)' }}>
+              {step.question}
+            </h1>
           {step.subtitle && (
             <p className="text-sm text-muted-foreground mb-6">{step.subtitle}</p>
           )}
@@ -431,11 +444,12 @@ export default function OnboardingPage() {
               )}
             </div>
           )}
-        </div>
+          </motion.div>
+        </AnimatePresence>
       </div>
 
       {/* Navigation buttons */}
-      <div className="px-6 py-6 max-w-lg mx-auto w-full">
+      <div className="px-6 py-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] max-w-lg mx-auto w-full bg-background/80 backdrop-blur-md">
         <div className="flex gap-3">
           {currentStep > 0 && (
             <button

@@ -57,6 +57,7 @@ Instructions:
       userMessage: 'Give me my daily dashboard insight.',
       temperature: 0.9,
       maxOutputTokens: 50,
+      fallbackText: "Stay focused. Today is another opportunity to get closer to your goals."
     })
 
     return NextResponse.json({ insight: insight.text.trim().replace(/^"|"$/g, '') })

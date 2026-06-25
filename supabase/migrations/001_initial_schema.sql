@@ -11,7 +11,7 @@ create extension if not exists "uuid-ossp";
 -- Stores all 4 memory layers per user (jsonb)
 -- =====================================================
 create table if not exists public.user_memory (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade unique,
   hard_memory jsonb not null default '{}'::jsonb,
   soft_memory jsonb not null default '{}'::jsonb,
@@ -26,7 +26,7 @@ create table if not exists public.user_memory (
 -- Stores AI Coach conversation history (capped at 50 per user server-side)
 -- =====================================================
 create table if not exists public.chat_messages (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   role text not null check (role in ('user', 'assistant', 'system')),
   content text not null,
@@ -42,7 +42,7 @@ create index if not exists chat_messages_user_id_created_at_idx
 -- Daily food/macro entries
 -- =====================================================
 create table if not exists public.food_logs (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   log_date date not null default current_date,
   name text not null,
@@ -61,7 +61,7 @@ create index if not exists food_logs_user_date_idx
 -- AI-generated or user-created workout plans
 -- =====================================================
 create table if not exists public.workout_schedules (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   schedule jsonb not null,
   active boolean not null default true,
@@ -77,7 +77,7 @@ create index if not exists workout_schedules_user_id_idx
 -- Daily "did I train today?" toggle
 -- =====================================================
 create table if not exists public.workout_logs (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   log_date date not null default current_date,
   trained boolean not null default false,
@@ -94,7 +94,7 @@ create index if not exists workout_logs_user_date_idx
 -- Weight history for BMI tracking
 -- =====================================================
 create table if not exists public.weight_logs (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   log_date date not null default current_date,
   weight_kg numeric(5,1) not null,
@@ -110,7 +110,7 @@ create index if not exists weight_logs_user_date_idx
 -- User ratings and messages
 -- =====================================================
 create table if not exists public.feedback (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   rating integer not null check (rating >= 1 and rating <= 5),
   message text,

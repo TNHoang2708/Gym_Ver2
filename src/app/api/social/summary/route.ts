@@ -25,7 +25,7 @@ export async function POST(req: Request) {
     const prompt = `Write a short, hype, 2-sentence summary of this workout for a social feed. 
 The user moved a total volume of ${totalVolume}kg.
 Here are the exercises they did:
-${sessionLogs.map((l: any) => `- ${l.exercise_name}: ${l.set_number} sets`).join('\n')}
+${sessionLogs.map((l: { exercise_name: string, set_number: number }) => `- ${l.exercise_name}: ${l.set_number} sets`).join('\n')}
 
 Make it sound like a fitness influencer on Instagram. Use 1 or 2 emojis.`
 
@@ -33,7 +33,7 @@ Make it sound like a fitness influencer on Instagram. Use 1 or 2 emojis.`
     const summary = result.response.text().trim()
 
     return NextResponse.json({ summary })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error generating summary:', error)
     return NextResponse.json({ summary: "Crushed a massive workout and left it all on the gym floor! Another day, another step closer to the goal. 💪🔥" })
   }

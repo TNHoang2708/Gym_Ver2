@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { Toaster } from '@/components/ui/sonner'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,6 +19,16 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <div className="relative z-10 w-full flex items-center justify-center">
         {children}
       </div>
+      <Toaster
+        theme="dark"
+        toastOptions={{
+          style: {
+            background: 'oklch(0.1 0 0)',
+            border: '1px solid oklch(0.18 0 0)',
+            color: 'oklch(0.96 0 0)',
+          },
+        }}
+      />
     </div>
   )
 }

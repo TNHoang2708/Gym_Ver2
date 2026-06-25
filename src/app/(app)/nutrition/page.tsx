@@ -10,13 +10,14 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts'
 import { calculateNutritionGoals } from '@/lib/nutrition'
+import { haptic } from '@/lib/haptics'
 import type { HardMemory, SoftMemory, NutritionGoals, FoodFavourite } from '@/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface FoodLog {
   id: string
-  meal_type: string
-  food_name: string
+  meal_type?: string
+  name: string
   calories: number
   protein_g: number
   carbs_g: number
@@ -145,6 +146,7 @@ export default function NutritionPage() {
   // AI Meal Generator State
   const [showGenerator, setShowGenerator] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isLoggingAI, setIsLoggingAI] = useState(false)
   const [preferences, setPreferences] = useState('')
   const [generatedMeal, setGeneratedMeal] = useState<{
     name: string;
@@ -241,6 +243,7 @@ export default function NutritionPage() {
 
       const result = data.result
       setFoodName(result.foodName || '')
+      setSearchQuery(result.foodName || '')
       setCalories(String(result.calories || 0))
       setProtein(String(result.protein_g || 0))
       setCarbs(String(result.carbs_g || 0))
@@ -337,8 +340,7 @@ export default function NutritionPage() {
     const { error } = await supabase.from('food_logs').insert([{
       user_id:   user.id,
       log_date:  new Date().toISOString().split('T')[0],
-      meal_type: mealType,
-      food_name: foodName.trim(),
+      name: foodName.trim(),
       calories:  parseInt(calories) || 0,
       protein_g: parseFloat(protein) || 0,
       carbs_g:   parseFloat(carbs) || 0,
@@ -406,25 +408,48 @@ export default function NutritionPage() {
   }
 
   async function logAIRecipe() {
-    if (!aiRecipe) return
-    const newLog = {
-      user_id: (await createClient().auth.getUser()).data.user?.id,
-      meal_type: 'Dinner',
-      food_name: aiRecipe.mealName + ' (AI Generated)',
-      calories: aiRecipe.macros.calories,
-      protein_g: aiRecipe.macros.protein,
-      carbs_g: aiRecipe.macros.carbs,
-      fat_g: aiRecipe.macros.fat
-    }
+    if (!aiRecipe || isLoggingAI) return
+    setIsLoggingAI(true)
+    try {
+      // Duplicate entry guard
+      const alreadyLogged = logs.some((l: FoodLog) => l.name === aiRecipe.mealName + ' (AI Generated)')
+      if (alreadyLogged) {
+        toast.error('This AI meal has already been logged today!')
+        setIsLoggingAI(false)
+        return
+      }
 
-    const supabase = createClient()
-    const { error } = await supabase.from('food_logs').insert([newLog])
-    if (!error) {
-      toast.success('AI Meal Logged!')
-      setAiRecipe(null)
-      setViewMode('log')
-      mutate()
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        toast.error('Not authenticated')
+        setIsLoggingAI(false)
+        return
+      }
+
+      const newLog = {
+        user_id: user.id,
+        name: aiRecipe.mealName + ' (AI Generated)',
+        calories: aiRecipe.macros.calories,
+        protein_g: aiRecipe.macros.protein,
+        carbs_g: aiRecipe.macros.carbs,
+        fat_g: aiRecipe.macros.fat,
+        log_date: new Date().toISOString().split('T')[0] // Important: explicitly set date
+      }
+
+      const { error } = await supabase.from('food_logs').insert([newLog])
+      if (!error) {
+        toast.success('AI Meal Logged successfully!')
+        setAiRecipe(null)
+        setViewMode('log')
+        mutate()
+      } else {
+        toast.error('Failed to log meal: ' + error.message)
+      }
+    } catch (e: any) {
+      toast.error('An error occurred')
     }
+    setIsLoggingAI(false)
   }
 
   // ── Computed ───────────────────────────────────────────────────────────────
@@ -435,11 +460,11 @@ export default function NutritionPage() {
     fat:  acc.fat  + l.fat_g,
   }), { cal: 0, pro: 0, carb: 0, fat: 0 })
 
-  const filteredLogs = activeTab === 'All' ? logs : logs.filter(l => l.meal_type === activeTab)
+  const filteredLogs = activeTab === 'All' ? logs : logs.filter(l => (l.meal_type || 'Snack') === activeTab)
 
   const groupedLogs = MEAL_TYPES.map(m => ({
     ...m,
-    logs: filteredLogs.filter(l => l.meal_type === m.value),
+    logs: filteredLogs.filter(l => (l.meal_type || 'Snack') === m.value),
   })).filter(g => g.logs.length > 0)
 
   const macros = [
@@ -472,8 +497,8 @@ export default function NutritionPage() {
             </p>
           </div>
           <button
-            onClick={() => setShowAdd(!showAdd)}
-            className="w-12 h-12 rounded-full bg-gold text-gold-foreground flex items-center justify-center hover:scale-105 active:scale-95 transition-all glow-gold"
+            onClick={() => { haptic.light(); setShowAdd(!showAdd); }}
+            className="w-12 h-12 rounded-full bg-gold text-gold-foreground flex items-center justify-center hover:scale-105 active:scale-95 transition-all transform-gpu glow-gold"
           >
             <Plus className={`w-6 h-6 transition-transform duration-300 ${showAdd ? 'rotate-45' : ''}`} />
           </button>
@@ -503,9 +528,9 @@ export default function NutritionPage() {
                 Need meal inspiration? Based on your remaining macros today, your dietary lifestyles, and allergies, the AI will construct a perfect recipe for you.
               </p>
               <button 
-                onClick={generateAIRecipe}
+                onClick={() => { haptic.medium(); generateAIRecipe(); }}
                 disabled={generatingRecipe}
-                className="px-8 py-4 bg-gold text-gold-foreground rounded-2xl font-bold text-lg hover:scale-105 transition-transform flex items-center justify-center gap-2 mx-auto glow-gold disabled:opacity-50 disabled:scale-100"
+                className="px-8 py-4 bg-gold text-gold-foreground rounded-2xl font-bold text-lg hover:scale-105 transition-transform flex items-center justify-center gap-2 mx-auto glow-gold disabled:opacity-50 disabled:scale-100 active:scale-95 transform-gpu"
               >
                 {generatingRecipe ? <Loader2 className="w-6 h-6 animate-spin" /> : <Flame className="w-6 h-6" />}
                 {generatingRecipe ? 'Crafting Recipe...' : 'Generate Meal'}
@@ -514,6 +539,19 @@ export default function NutritionPage() {
 
             {aiRecipe && (
               <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="glass-card p-6 rounded-[2rem]">
+                <div className="relative w-full h-56 mb-6 rounded-2xl overflow-hidden group bg-black/40 border border-white/5 flex flex-col items-center justify-center">
+                  <div className="absolute inset-0 bg-gradient-to-br from-gold/30 to-blue-500/20 opacity-80 z-10 mix-blend-overlay"></div>
+                  <div className="absolute inset-0 bg-black/40 z-10"></div>
+                  <img 
+                    src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&q=80" 
+                    alt="AI Michelin Recipe" 
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+                  />
+                  <div className="relative z-20 text-center">
+                    <Utensils className="w-10 h-10 text-gold mb-2 mx-auto drop-shadow-lg" />
+                    <p className="text-xs text-white uppercase tracking-widest font-bold drop-shadow-md bg-black/30 px-3 py-1 rounded-full backdrop-blur-md">AI Michelin Recipe</p>
+                  </div>
+                </div>
                 <h3 className="text-2xl font-bold mb-2">{aiRecipe.mealName}</h3>
                 <p className="text-sm text-muted-foreground mb-4">Prep time: {aiRecipe.prepTimeMinutes} mins</p>
                 
@@ -541,10 +579,12 @@ export default function NutritionPage() {
 
                 <div className="mt-8 pt-6 border-t border-white/5">
                   <button 
-                    onClick={logAIRecipe}
-                    className="w-full py-4 bg-white/10 hover:bg-white/20 transition-colors rounded-xl font-bold text-white flex items-center justify-center gap-2"
+                    onClick={() => { haptic.success(); logAIRecipe(); }}
+                    disabled={isLoggingAI}
+                    className="w-full py-4 bg-white/10 hover:bg-white/20 transition-colors rounded-xl font-bold text-white flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95 transform-gpu"
                   >
-                    <Plus className="w-5 h-5" /> Log This Meal
+                    {isLoggingAI ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />} 
+                    {isLoggingAI ? 'Logging...' : 'Log This Meal'}
                   </button>
                 </div>
               </motion.div>
@@ -558,10 +598,11 @@ export default function NutritionPage() {
         <AnimatePresence>
           {showAdd && (
             <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="overflow-hidden"
+              initial={{ opacity: 0, y: -10, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.98 }}
+              transition={{ duration: 0.15, ease: 'easeOut' }}
+              className="transform-gpu origin-top"
             >
               <div className="glass-card p-6 md:p-8 rounded-[2rem] space-y-6">
                 
@@ -766,7 +807,7 @@ export default function NutritionPage() {
         {/* ── Macro summary cards ── */}
         <motion.div
           className="grid grid-cols-2 md:grid-cols-4 gap-4"
-          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+          initial={{ opacity: 1, y: 0 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
         >
           {macros.map((m, i) => {
             const pct = Math.min(100, Math.round((m.current / m.max) * 100))
@@ -799,7 +840,7 @@ export default function NutritionPage() {
         <div className="grid lg:grid-cols-5 gap-6">
 
           {/* Food log list */}
-          <motion.div className="lg:col-span-3 space-y-4" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+          <motion.div className="lg:col-span-3 space-y-4" initial={{ opacity: 1, y: 0 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
 
             {/* Meal tabs */}
             <div className="flex items-center gap-2 overflow-x-auto pb-1">
@@ -861,8 +902,8 @@ export default function NutritionPage() {
                             <Flame className="w-4 h-4 text-gold" />
                           </div>
                           <div className="min-w-0">
-                            <h3 className="font-semibold text-sm truncate">{log.food_name}</h3>
-                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{log.meal_type}</p>
+                            <h3 className="font-semibold text-sm truncate">{log.name || log.food_name}</h3>
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{log.meal_type || 'Snack'}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
@@ -877,7 +918,7 @@ export default function NutritionPage() {
                           </div>
                           <span className="sm:hidden text-sm font-bold text-orange-400">{log.calories}</span>
                           <button
-                            onClick={() => handleDelete(log.id, log.food_name, log.calories)}
+                            onClick={() => handleDelete(log.id, log.name || log.food_name, log.calories)}
                             className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500/20 hover:text-red-400"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -894,7 +935,7 @@ export default function NutritionPage() {
           {/* Weekly Macro chart */}
           <motion.div
             className="lg:col-span-2 glass-card p-6 rounded-[2rem] flex flex-col"
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+            initial={{ opacity: 1, y: 0 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
           >
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2">

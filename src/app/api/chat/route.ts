@@ -32,7 +32,9 @@ import type {
   UserMemory,
 } from '@/types'
 
-const MAX_CHAT_HISTORY = 50
+// Limit chat history to 10 to save massive tokens. 
+// We rely on user_memory (Soft/Hard memory) for long-term context instead.
+const MAX_CHAT_HISTORY = 10
 
 export async function POST(request: NextRequest) {
   try {
@@ -62,6 +64,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const userMessage: string = body.message?.trim()
     const isGreeting: boolean = body.isGreeting === true
+    let sessionId: string | undefined = body.sessionId
 
     if (!userMessage && !isGreeting) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 })
@@ -119,28 +122,31 @@ export async function POST(request: NextRequest) {
     }
 
     // 5. Load chat history (last 50 messages, oldest first)
-    const { data: chatHistory } = await supabase
-      .from('chat_messages')
-      .select('role, content')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(MAX_CHAT_HISTORY)
+    let history: AIMessage[] = []
+    if (sessionId) {
+      const { data: chatHistory } = await supabase
+        .from('chat_messages')
+        .select('role, content')
+        .eq('session_id', sessionId)
+        .order('created_at', { ascending: false })
+        .limit(MAX_CHAT_HISTORY)
 
-    // Convert to OpenAI history format (reverse to get chronological order, exclude system)
-    const history: AIMessage[] = (chatHistory ?? [])
-      .filter((m) => m.role === 'user' || m.role === 'assistant')
-      .reverse()
-      .map((m) => ({
-        role: m.role as 'user' | 'assistant',
-        content: m.content,
-      }))
+      // Convert to OpenAI history format (reverse to get chronological order, exclude system)
+      history = (chatHistory ?? [])
+        .filter((m) => m.role === 'user' || m.role === 'assistant')
+        .reverse()
+        .map((m) => ({
+          role: m.role as 'user' | 'assistant',
+          content: m.content,
+        }))
+    }
 
     // 6. Detect conversation mode
     const activeMood = getActiveMood((memory.emotional_memory ?? {}) as EmotionalMemory)
     const mode = detectConversationMode(userMessage ?? '', activeMood)
 
     // 7. Build system prompt
-    const systemPrompt = buildSystemPrompt(memory, mode, todayNutrition)
+    const systemPrompt = await buildSystemPrompt(memory, mode, todayNutrition)
 
     // 8. For greeting requests, use a special greeting prompt
     let promptMessage = userMessage
@@ -173,40 +179,66 @@ export async function POST(request: NextRequest) {
     })
 
     // 10. Parse tags from response
-    const { memories, emotion, topics, schedule, cleanedText } = parseAITags(rawReply)
+    const { memories, emotion, topics, schedule, nutrition, cleanedText } = parseAITags(rawReply)
 
     // 11. Persist messages (if not a greeting)
-    const messagesToInsert = []
-
     if (!isGreeting && userMessage) {
-      messagesToInsert.push({
-        user_id: user.id,
-        role: 'user',
-        content: userMessage,
-      })
-    }
+      if (!sessionId) {
+        // Create new session
+        const title = userMessage.length > 40 ? userMessage.substring(0, 40) + '...' : userMessage
+        const { data: newSession } = await supabase
+          .from('chat_sessions')
+          .insert({ user_id: user.id, title })
+          .select('id')
+          .single()
+          .throwOnError()
+        
+        if (newSession) {
+          sessionId = newSession.id
+        }
+      } else {
+        // Update session's updated_at
+        await supabase
+          .from('chat_sessions')
+          .update({ updated_at: new Date().toISOString() })
+          .eq('id', sessionId)
+          .throwOnError()
+      }
 
-    messagesToInsert.push({
-      user_id: user.id,
-      role: 'assistant',
-      content: cleanedText,
-      metadata: schedule ? { schedule } : {},
-    })
+      const messagesToInsert = [
+        {
+          session_id: sessionId,
+          user_id: user.id,
+          role: 'user',
+          content: userMessage,
+        },
+        {
+          session_id: sessionId,
+          user_id: user.id,
+          role: 'assistant',
+          content: cleanedText,
+          metadata: {
+            ...(schedule ? { schedule } : {}),
+            ...(nutrition ? { nutrition } : {})
+          },
+        }
+      ]
 
-    if (messagesToInsert.length > 0) {
-      await supabase.from('chat_messages').insert(messagesToInsert)
-    }
+      await supabase.from('chat_messages').insert(messagesToInsert).throwOnError()
 
-    // 12. Cap chat history at 50 messages
-    const { data: allMessages } = await supabase
-      .from('chat_messages')
-      .select('id, created_at')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
+      // Cap chat history at MAX_CHAT_HISTORY per session
+      if (sessionId) {
+        const { data: allMessages } = await supabase
+          .from('chat_messages')
+          .select('id')
+          .eq('session_id', sessionId)
+          .order('created_at', { ascending: false })
 
-    if (allMessages && allMessages.length > MAX_CHAT_HISTORY) {
-      const toDelete = allMessages.slice(MAX_CHAT_HISTORY).map((m) => m.id)
-      await supabase.from('chat_messages').delete().in('id', toDelete)
+        if (allMessages && allMessages.length > MAX_CHAT_HISTORY) {
+          const toDelete = allMessages.slice(MAX_CHAT_HISTORY).map((m) => m.id)
+          await supabase.from('chat_messages').delete().in('id', toDelete).throwOnError()
+        }
+      }
     }
 
     // 13. Update memory from tags
@@ -261,6 +293,7 @@ export async function POST(request: NextRequest) {
         .from('user_memory')
         .update(memoryUpdates)
         .eq('user_id', user.id)
+        .throwOnError()
     }
 
     // 14. Save workout schedule if present
@@ -270,18 +303,34 @@ export async function POST(request: NextRequest) {
         .from('workout_schedules')
         .update({ active: false })
         .eq('user_id', user.id)
+        .throwOnError()
 
       // Insert new schedule
       await supabase.from('workout_schedules').insert({
         user_id: user.id,
         schedule,
         active: true,
-      })
+      }).throwOnError()
+    }
+
+    // 15. Save nutrition log if present
+    if (nutrition) {
+      await supabase.from('food_logs').insert({
+        user_id: user.id,
+        log_date: new Date().toISOString().split('T')[0],
+        name: nutrition.food_name,
+        calories: nutrition.calories,
+        protein_g: nutrition.protein_g,
+        carbs_g: nutrition.carbs_g,
+        fat_g: nutrition.fat_g
+      }).throwOnError()
     }
 
     const response: ChatApiResponse = {
       reply: cleanedText,
+      sessionId: sessionId,
       schedule: schedule ?? undefined,
+      nutrition: nutrition ?? undefined,
     }
 
     return NextResponse.json(response)

@@ -41,10 +41,16 @@ export default function RegisterPage() {
     })
 
     if (error) {
-      toast.error(error.message)
+      if (error.message.includes('User already registered')) {
+        toast.error('This email is already in use')
+      } else {
+        toast.error(error.message)
+      }
       setLoading(false)
       return
     }
+
+    toast.success('Account created successfully!')
 
     router.push('/onboarding')
     router.refresh()
@@ -55,10 +61,11 @@ export default function RegisterPage() {
       <motion.div 
         className="glass-card rounded-[2rem] p-8 md:p-10 space-y-8 relative overflow-hidden"
         initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
         transition={{ duration: 0.5, type: 'spring' }}
       >
-        <div className="absolute -top-24 -left-24 w-48 h-48 bg-gold/20 rounded-full blur-[60px] pointer-events-none" />
+        <div className="absolute -top-24 -left-24 w-48 h-48 bg-[radial-gradient(circle,rgba(140,224,255,0.2)_0%,transparent_70%)] rounded-full pointer-events-none" />
 
         <div className="text-center space-y-4 relative z-10">
           <div className="w-16 h-16 rounded-2xl bg-gold/10 border border-gold/20 flex items-center justify-center mx-auto glow-gold">

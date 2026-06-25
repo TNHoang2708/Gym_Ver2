@@ -13,6 +13,7 @@ export interface HardMemory {
   injuries?: string[]
   dietary_lifestyles?: string[]
   allergies?: string[]
+  avatar_url?: string
 }
 
 export interface SoftMemory {
@@ -54,6 +55,7 @@ export interface UserMemory {
   id: string
   user_id: string
   is_admin?: boolean
+  display_name?: string
   hard_memory: HardMemory
   soft_memory: SoftMemory
   emotional_memory: EmotionalMemory
@@ -64,14 +66,24 @@ export interface UserMemory {
 
 // ---- Chat Types ----
 
+export interface ChatSession {
+  id: string
+  user_id: string
+  title: string
+  created_at: string
+  updated_at: string
+}
+
 export interface ChatMessage {
   id: string
+  session_id: string
   user_id: string
   role: 'user' | 'assistant' | 'system'
   content: string
   metadata?: {
     schedule?: WorkoutSchedule
     quick_replies?: string[]
+    nutrition?: { food_name: string; calories: number; protein_g: number; carbs_g: number; fat_g: number }
   }
   created_at: string
 }
@@ -182,7 +194,9 @@ export interface Feedback {
 
 export interface ChatApiResponse {
   reply: string
+  sessionId?: string
   schedule?: WorkoutSchedule
+  nutrition?: { food_name: string; calories: number; protein_g: number; carbs_g: number; fat_g: number }
   error?: string
 }
 

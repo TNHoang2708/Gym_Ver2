@@ -1,0 +1,10 @@
+{"ts":"2026-06-19T01:41:54.614Z","hook":"session-init","event":"SessionStart","tool":"","target":"","note":"startup","dur":327,"status":"ok","exit":0,"error":""}
+{"ts":"2026-06-19T01:42:14.500Z","hook":"usage-context-awareness","event":"UserPromptSubmit","tool":"","target":"","note":"missing-credentials","dur":2,"status":"warn","exit":0,"error":""}
+{"ts":"2026-06-19T01:42:14.588Z","hook":"dev-rules-reminder","event":"UserPromptSubmit","tool":"","target":"","note":"context-injected","dur":87,"status":"ok","exit":0,"error":""}
+{"ts":"2026-06-19T01:50:26.663Z","hook":"usage-context-awareness","event":"UserPromptSubmit","tool":"","target":"","note":"missing-credentials","dur":1,"status":"warn","exit":0,"error":""}
+{"ts":"2026-06-19T01:50:26.664Z","hook":"dev-rules-reminder","event":"UserPromptSubmit","tool":"","target":"","note":"recently-injected","dur":1,"status":"skip","exit":0,"error":""}
+{"ts":"2026-06-19T01:59:04.657Z","hook":"usage-context-awareness","event":"UserPromptSubmit","tool":"","target":"","note":"missing-credentials","dur":1,"status":"warn","exit":0,"error":""}
+{"ts":"2026-06-19T01:59:04.658Z","hook":"dev-rules-reminder","event":"UserPromptSubmit","tool":"","target":"","note":"recently-injected","dur":1,"status":"skip","exit":0,"error":""}
+{"ts":"2026-06-19T08:20:49.000Z","hook":"session-init","event":"SessionStart","tool":"","target":"","note":"startup","dur":1301,"status":"ok","exit":0,"error":""}
+{"ts":"2026-06-22T00:50:44.619Z","hook":"session-init","event":"SessionStart","tool":"","target":"","note":"startup","dur":1317,"status":"ok","exit":0,"error":""}
+{"ts":"2026-06-22T03:15:32.924Z","hook":"session-init","event":"SessionStart","tool":"","target":"","note":"startup","dur":1246,"status":"ok","exit":0,"error":""}

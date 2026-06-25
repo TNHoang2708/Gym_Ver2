@@ -3,7 +3,7 @@
 -- Run this in your Supabase SQL Editor
 -- =====================================================
 
-alter table public.diary_entries
+alter table public.weight_logs
 add column if not exists photo_url text;
 
 -- Done!

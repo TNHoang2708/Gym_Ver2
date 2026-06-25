@@ -10,11 +10,11 @@ CREATE OR REPLACE VIEW public.global_leaderboard_view AS
 SELECT 
     um.user_id,
     COALESCE(um.display_name, 'Anonymous Athlete') as display_name,
-    COALESCE(SUM(wl.volume_kg), 0) as total_volume_kg
+    COALESCE(SUM(wsl.weight_kg * wsl.reps_achieved), 0) as total_volume_kg
 FROM 
     public.user_memory um
 LEFT JOIN 
-    public.workout_logs wl ON um.user_id = wl.user_id
+    public.workout_session_logs wsl ON um.user_id = wsl.user_id
 GROUP BY 
     um.user_id, um.display_name
 ORDER BY 
