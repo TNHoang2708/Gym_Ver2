@@ -3,10 +3,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Camera, Upload, Plus, Loader2, ChevronLeft, ChevronRight, Scale, Activity, Trash2, Maximize2 } from 'lucide-react'
+import { Camera, Upload, Plus, Loader2, ChevronLeft, ChevronRight, Scale, Activity, Trash2, Maximize2, LineChart as LineChartIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import Image from 'next/image'
 import { format } from 'date-fns'
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 
 interface ProgressLog {
   id: string
@@ -17,6 +18,7 @@ interface ProgressLog {
 }
 
 export default function ProgressGalleryPage() {
+  const [activeTab, setActiveTab] = useState<'gallery' | 'analytics'>('gallery')
   const [logs, setLogs] = useState<ProgressLog[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
@@ -37,10 +39,21 @@ export default function ProgressGalleryPage() {
   const [sliderPosition, setSliderPosition] = useState(50)
   const sliderRef = useRef<HTMLDivElement>(null)
 
+  // Analytics State
+  const [workoutLogs, setWorkoutLogs] = useState<any[]>([])
+  const [analyticsLoading, setAnalyticsLoading] = useState(false)
+  const [stats, setStats] = useState({ totalWorkouts: 0, maxStreak: 0, totalVolume: 0 })
+
   useEffect(() => {
     setLogDate(new Date().toISOString().split('T')[0])
     loadProgressLogs()
   }, [])
+
+  useEffect(() => {
+    if (activeTab === 'analytics' && workoutLogs.length === 0) {
+      loadAnalytics()
+    }
+  }, [activeTab])
 
   async function loadProgressLogs() {
     setLoading(true)
@@ -65,6 +78,67 @@ export default function ProgressGalleryPage() {
       }
     }
     setLoading(false)
+  }
+
+  async function loadAnalytics() {
+    setAnalyticsLoading(true)
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    const { data: sessionLogs, error } = await supabase
+      .from('workout_session_logs')
+      .select('log_date, volume_kg')
+      .eq('user_id', user.id)
+      .order('log_date', { ascending: true })
+
+    if (!error && sessionLogs) {
+      // Group volume by date
+      const volumeByDate = sessionLogs.reduce((acc: any, log) => {
+        if (!acc[log.log_date]) acc[log.log_date] = 0;
+        acc[log.log_date] += (log.volume_kg || 0);
+        return acc;
+      }, {})
+      
+      const chartData = Object.keys(volumeByDate).map(date => ({
+        log_date: date,
+        volume_kg: volumeByDate[date]
+      })).sort((a, b) => new Date(a.log_date).getTime() - new Date(b.log_date).getTime())
+
+      setWorkoutLogs(chartData)
+      
+      // Calculate Stats
+      const uniqueDates = new Set(sessionLogs.map(l => l.log_date))
+      const totalVolume = sessionLogs.reduce((acc, l) => acc + (l.volume_kg || 0), 0)
+      
+      // Basic max streak calculation
+      let maxStreak = 0
+      let currentStreak = 0
+      let lastDate: Date | null = null
+      
+      Array.from(uniqueDates).sort().forEach(dateStr => {
+        const d = new Date(dateStr)
+        if (!lastDate) {
+          currentStreak = 1
+        } else {
+          const diffDays = Math.floor((d.getTime() - lastDate.getTime()) / (1000 * 3600 * 24))
+          if (diffDays === 1) {
+            currentStreak++
+          } else if (diffDays > 1) {
+            currentStreak = 1
+          }
+        }
+        if (currentStreak > maxStreak) maxStreak = currentStreak
+        lastDate = d
+      })
+
+      setStats({
+        totalWorkouts: uniqueDates.size,
+        totalVolume,
+        maxStreak
+      })
+    }
+    setAnalyticsLoading(false)
   }
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -174,21 +248,40 @@ export default function ProgressGalleryPage() {
     <div className="min-h-screen pb-24 pt-6 px-4 max-w-5xl mx-auto relative overflow-x-hidden">
       <div className="absolute top-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-[radial-gradient(circle,rgba(212,175,106,0.15)_0%,transparent_70%)] pointer-events-none z-0" />
       
-      <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4 relative z-10">
+      <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 gap-4 relative z-10">
         <div>
           <h1 className="text-3xl md:text-4xl font-heading font-bold mb-2">Body Transformation</h1>
           <p className="text-muted-foreground">Track your physical changes over time.</p>
         </div>
-        <div className="flex items-center gap-3">
-          {logs.length >= 2 && (
-            <button 
-              onClick={() => setCompareMode(!compareMode)}
-              className={`px-4 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-all ${compareMode ? 'bg-gold text-gold-foreground glow-gold' : 'glass-card hover:bg-white/10'}`}
-            >
-              <Maximize2 className="w-4 h-4" />
-              {compareMode ? 'Gallery View' : 'Compare View'}
-            </button>
-          )}
+        
+        {/* Navigation Tabs */}
+        <div className="flex bg-black/40 p-1 rounded-2xl w-fit border border-white/10 backdrop-blur-md self-start md:self-auto">
+          <button 
+            onClick={() => setActiveTab('gallery')}
+            className={`px-5 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'gallery' ? 'bg-white/10 text-gold shadow-md' : 'text-muted-foreground hover:text-white'}`}
+          >
+            <Camera className="w-4 h-4" /> Gallery
+          </button>
+          <button 
+            onClick={() => setActiveTab('analytics')}
+            className={`px-5 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'analytics' ? 'bg-white/10 text-gold shadow-md' : 'text-muted-foreground hover:text-white'}`}
+          >
+            <LineChartIcon className="w-4 h-4" /> Analytics
+          </button>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3 mb-8 relative z-10">
+        {activeTab === 'gallery' && logs.length >= 2 && (
+          <button 
+            onClick={() => setCompareMode(!compareMode)}
+            className={`px-4 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-all ${compareMode ? 'bg-gold text-gold-foreground glow-gold' : 'glass-card hover:bg-white/10'}`}
+          >
+            <Maximize2 className="w-4 h-4" />
+            {compareMode ? 'Gallery View' : 'Compare View'}
+          </button>
+        )}
+        {activeTab === 'gallery' && (
           <button 
             onClick={() => setShowUploadModal(true)}
             className="px-4 py-2.5 bg-gold text-gold-foreground rounded-xl font-bold flex items-center gap-2 hover:scale-105 active:scale-95 transition-transform transform-gpu shadow-lg glow-gold"
@@ -196,147 +289,223 @@ export default function ProgressGalleryPage() {
             <Camera className="w-5 h-5" />
             Add Photo
           </button>
-        </div>
+        )}
       </div>
 
-      {logs.length === 0 ? (
-        <div className="glass-card flex flex-col items-center justify-center p-12 text-center rounded-[2.5rem] mt-10">
-          <div className="w-20 h-20 bg-gold/10 rounded-full flex items-center justify-center mb-6">
-            <Camera className="w-10 h-10 text-gold" />
-          </div>
-          <h2 className="text-2xl font-bold mb-2">No Photos Yet</h2>
-          <p className="text-muted-foreground mb-8 max-w-md">The mirror lies, but photos don't. Start taking weekly progress photos to visually track your transformation.</p>
-          <button 
-            onClick={() => setShowUploadModal(true)}
-            className="bg-gold text-gold-foreground px-8 py-4 rounded-xl font-bold flex items-center gap-2 hover:scale-105 transition-transform"
-          >
-            <Plus className="w-5 h-5" /> First Photo
-          </button>
-        </div>
-      ) : compareMode && beforeLog && afterLog ? (
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="relative z-10"
-        >
-          {/* Compare Controls */}
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="glass-card p-4 rounded-2xl border-white/5">
-              <label className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground mb-2 block">Before</label>
-              <select 
-                className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-sm focus:border-gold outline-none"
-                value={beforeLog.id}
-                onChange={(e) => setBeforeLog(logs.find(l => l.id === e.target.value) || beforeLog)}
-              >
-                {logs.map(l => (
-                  <option key={`before-${l.id}`} value={l.id}>{format(new Date(l.log_date), 'MMM d, yyyy')} ({l.weight_kg}kg)</option>
-                ))}
-              </select>
+      {activeTab === 'analytics' ? (
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8 relative z-10">
+          {/* Stats Grid */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="glass-card p-4 rounded-2xl text-center border-white/5 bg-black/40 backdrop-blur-md">
+              <p className="text-[10px] md:text-xs text-muted-foreground uppercase font-bold tracking-widest mb-1">Workouts</p>
+              <p className="text-2xl md:text-3xl font-black text-gold">{stats.totalWorkouts}</p>
             </div>
-            <div className="glass-card p-4 rounded-2xl border-white/5">
-              <label className="text-[10px] uppercase font-bold tracking-wider text-gold mb-2 block">After</label>
-              <select 
-                className="w-full bg-black/40 border border-gold/30 rounded-lg p-2 text-sm focus:border-gold outline-none"
-                value={afterLog.id}
-                onChange={(e) => setAfterLog(logs.find(l => l.id === e.target.value) || afterLog)}
-              >
-                {logs.map(l => (
-                  <option key={`after-${l.id}`} value={l.id}>{format(new Date(l.log_date), 'MMM d, yyyy')} ({l.weight_kg}kg)</option>
-                ))}
-              </select>
+            <div className="glass-card p-4 rounded-2xl text-center border-white/5 bg-black/40 backdrop-blur-md">
+              <p className="text-[10px] md:text-xs text-muted-foreground uppercase font-bold tracking-widest mb-1">Max Streak</p>
+              <p className="text-2xl md:text-3xl font-black text-gold">{stats.maxStreak} <span className="text-xs font-normal text-muted-foreground lowercase hidden sm:inline">days</span></p>
+            </div>
+            <div className="glass-card p-4 rounded-2xl text-center border-white/5 bg-black/40 backdrop-blur-md">
+              <p className="text-[10px] md:text-xs text-muted-foreground uppercase font-bold tracking-widest mb-1">Total Volume</p>
+              <p className="text-2xl md:text-3xl font-black text-gold">{(stats.totalVolume / 1000).toFixed(1)}<span className="text-xs font-normal text-muted-foreground lowercase hidden sm:inline">k kg</span></p>
             </div>
           </div>
 
-          {/* Image Slider */}
-          <div 
-            ref={sliderRef}
-            className="relative w-full aspect-[3/4] md:aspect-[4/3] rounded-[2rem] overflow-hidden select-none cursor-ew-resize border border-white/10 shadow-2xl touch-pan-y"
-            onMouseMove={(e) => e.buttons === 1 && handleSliderMove(e)}
-            onTouchMove={handleSliderMove}
-            onMouseDown={handleSliderMove}
-          >
-            {afterLog.photo_url && (
-              <Image src={afterLog.photo_url} alt="After" fill className="object-cover" draggable={false} />
-            )}
-            
-            {beforeLog.photo_url && (
-              <div className="absolute inset-0 overflow-hidden" style={{ width: `${sliderPosition}%` }}>
-                <div className="relative w-full h-full" style={{ width: sliderRef.current ? sliderRef.current.offsetWidth : '100vw' }}>
-                  <Image src={beforeLog.photo_url} alt="Before" fill className="object-cover" draggable={false} />
-                </div>
-              </div>
-            )}
-            
-            <div className="absolute top-0 bottom-0 w-1 bg-white cursor-ew-resize shadow-[0_0_10px_rgba(0,0,0,0.5)] z-20" style={{ left: `calc(${sliderPosition}% - 2px)` }}>
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-lg border border-gray-200">
-                <div className="flex gap-0.5"><ChevronLeft className="w-4 h-4 text-black" /><ChevronRight className="w-4 h-4 text-black -ml-2" /></div>
-              </div>
+          {/* Volume Chart */}
+          <div className="glass-card p-4 md:p-6 rounded-[2rem] border-white/5 bg-black/40 backdrop-blur-md">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="font-bold text-lg flex items-center gap-2"><Activity className="w-5 h-5 text-gold"/> Volume History</h3>
             </div>
-
-            <div className="absolute bottom-4 left-4 right-4 flex justify-between pointer-events-none z-30 drop-shadow-md">
-              <span className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-lg text-xs font-bold text-white border border-white/20">Before: {beforeLog.weight_kg}kg</span>
-              <span className="bg-gold/80 backdrop-blur-md px-3 py-1.5 rounded-lg text-xs font-bold text-black border border-gold/50">After: {afterLog.weight_kg}kg</span>
+            <div className="h-[250px] w-full">
+              {analyticsLoading ? (
+                <div className="w-full h-full flex justify-center items-center"><Loader2 className="w-6 h-6 animate-spin text-gold" /></div>
+              ) : workoutLogs.length === 0 ? (
+                <div className="w-full h-full flex justify-center items-center text-muted-foreground text-sm">No workout data available.</div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={workoutLogs}>
+                    <XAxis dataKey="log_date" tickFormatter={(v) => new Date(v).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} stroke="#666" fontSize={10} tickLine={false} axisLine={false} dy={10} />
+                    <YAxis stroke="#666" fontSize={10} tickLine={false} axisLine={false} dx={-10} tickFormatter={(v) => `${(v/1000).toFixed(1)}k`} />
+                    <Tooltip 
+                      cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                      contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', borderColor: 'rgba(212,175,106,0.3)', borderRadius: '12px', backdropFilter: 'blur(10px)' }} 
+                      itemStyle={{ color: '#D4AF6A', fontWeight: 'bold' }} 
+                      labelStyle={{ color: '#888', marginBottom: '4px' }}
+                      formatter={(value: number) => [`${value} kg`, 'Volume']}
+                    />
+                    <Bar dataKey="volume_kg" fill="#D4AF6A" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </div>
-          
-          {/* Stats difference */}
-          <div className="mt-6 glass-card p-6 rounded-[2rem] flex items-center justify-center gap-8">
-            <div className="text-center">
-              <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest mb-1">Time Diff</p>
-              <p className="text-2xl font-bold">{Math.abs(Math.round((new Date(afterLog.log_date).getTime() - new Date(beforeLog.log_date).getTime()) / (1000 * 60 * 60 * 24)))} days</p>
-            </div>
-            <div className="w-px h-12 bg-white/10" />
-            <div className="text-center">
-              <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest mb-1">Weight Change</p>
-              <p className={`text-2xl font-bold ${afterLog.weight_kg > beforeLog.weight_kg ? 'text-blue-400' : 'text-green-400'}`}>
-                {(afterLog.weight_kg - beforeLog.weight_kg) > 0 ? '+' : ''}{(afterLog.weight_kg - beforeLog.weight_kg).toFixed(1)} kg
-              </p>
+
+          {/* Weight Chart */}
+          <div className="glass-card p-4 md:p-6 rounded-[2rem] border-white/5 bg-black/40 backdrop-blur-md">
+            <h3 className="font-bold mb-6 text-lg flex items-center gap-2"><Scale className="w-5 h-5 text-gold"/> Body Weight Tracker</h3>
+            <div className="h-[250px] w-full">
+              {logs.length === 0 ? (
+                <div className="w-full h-full flex justify-center items-center text-muted-foreground text-sm">No weight data available. Log a photo to track weight.</div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={[...logs].reverse()}>
+                    <XAxis dataKey="log_date" tickFormatter={(v) => new Date(v).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} stroke="#666" fontSize={10} tickLine={false} axisLine={false} dy={10} />
+                    <YAxis domain={['dataMin - 2', 'dataMax + 2']} stroke="#666" fontSize={10} tickLine={false} axisLine={false} dx={-10} tickFormatter={(v) => `${v}kg`} />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', borderColor: 'rgba(212,175,106,0.3)', borderRadius: '12px', backdropFilter: 'blur(10px)' }} 
+                      itemStyle={{ color: '#D4AF6A', fontWeight: 'bold' }}
+                      labelStyle={{ color: '#888', marginBottom: '4px' }}
+                      formatter={(value: number) => [`${value} kg`, 'Weight']}
+                    />
+                    <Line type="monotone" dataKey="weight_kg" stroke="#D4AF6A" strokeWidth={3} dot={{ fill: '#000', stroke: '#D4AF6A', strokeWidth: 2, r: 4 }} activeDot={{ r: 6, fill: '#D4AF6A' }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </div>
         </motion.div>
       ) : (
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="columns-2 md:columns-3 lg:columns-4 gap-4 space-y-4 relative z-10"
-        >
-          {logs.map((log, index) => (
+        /* Gallery Tab Content */
+        <>
+          {logs.length === 0 ? (
+            <div className="glass-card flex flex-col items-center justify-center p-12 text-center rounded-[2.5rem] mt-10">
+              <div className="w-20 h-20 bg-gold/10 rounded-full flex items-center justify-center mb-6">
+                <Camera className="w-10 h-10 text-gold" />
+              </div>
+              <h2 className="text-2xl font-bold mb-2">No Photos Yet</h2>
+              <p className="text-muted-foreground mb-8 max-w-md">The mirror lies, but photos don't. Start taking weekly progress photos to visually track your transformation.</p>
+              <button 
+                onClick={() => setShowUploadModal(true)}
+                className="bg-gold text-gold-foreground px-8 py-4 rounded-xl font-bold flex items-center gap-2 hover:scale-105 transition-transform"
+              >
+                <Plus className="w-5 h-5" /> First Photo
+              </button>
+            </div>
+          ) : compareMode && beforeLog && afterLog ? (
             <motion.div 
-              key={log.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-              className="break-inside-avoid glass-card rounded-2xl overflow-hidden group relative border border-white/5 shadow-lg"
+              className="relative z-10"
             >
-              {log.photo_url && (
-                <div className="relative w-full aspect-[3/4]">
-                  <Image src={log.photo_url} alt={`Progress`} fill className="object-cover transition-transform duration-500 group-hover:scale-105" sizes="(max-width: 768px) 50vw, 33vw" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 opacity-80 group-hover:opacity-100 transition-opacity" />
-                  
-                  <div className="absolute bottom-0 left-0 right-0 p-4 transform translate-y-2 group-hover:translate-y-0 transition-transform">
-                    <p className="text-xs text-gold font-bold mb-1">{format(new Date(log.log_date), 'MMM d, yyyy')}</p>
-                    <div className="flex items-end justify-between">
-                      <div className="flex items-center gap-1.5 text-white">
-                        <Scale className="w-4 h-4" />
-                        <span className="font-bold">{log.weight_kg}kg</span>
-                      </div>
-                      {log.body_fat_percent && (
-                        <div className="flex items-center gap-1.5 text-white/80">
-                          <Activity className="w-3 h-3" />
-                          <span className="text-xs font-medium">{log.body_fat_percent}% BF</span>
-                        </div>
-                      )}
+              {/* Compare Controls */}
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="glass-card p-4 rounded-2xl border-white/5">
+                  <label className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground mb-2 block">Before</label>
+                  <select 
+                    className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-sm focus:border-gold outline-none"
+                    value={beforeLog.id}
+                    onChange={(e) => setBeforeLog(logs.find(l => l.id === e.target.value) || beforeLog)}
+                  >
+                    {logs.map(l => (
+                      <option key={`before-${l.id}`} value={l.id}>{format(new Date(l.log_date), 'MMM d, yyyy')} ({l.weight_kg}kg)</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="glass-card p-4 rounded-2xl border-white/5">
+                  <label className="text-[10px] uppercase font-bold tracking-wider text-gold mb-2 block">After</label>
+                  <select 
+                    className="w-full bg-black/40 border border-gold/30 rounded-lg p-2 text-sm focus:border-gold outline-none"
+                    value={afterLog.id}
+                    onChange={(e) => setAfterLog(logs.find(l => l.id === e.target.value) || afterLog)}
+                  >
+                    {logs.map(l => (
+                      <option key={`after-${l.id}`} value={l.id}>{format(new Date(l.log_date), 'MMM d, yyyy')} ({l.weight_kg}kg)</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Image Slider */}
+              <div 
+                ref={sliderRef}
+                className="relative w-full aspect-[3/4] md:aspect-[4/3] rounded-[2rem] overflow-hidden select-none cursor-ew-resize border border-white/10 shadow-2xl touch-pan-y"
+                onMouseMove={(e) => e.buttons === 1 && handleSliderMove(e)}
+                onTouchMove={handleSliderMove}
+                onMouseDown={handleSliderMove}
+              >
+                {afterLog.photo_url && (
+                  <Image src={afterLog.photo_url} alt="After" fill className="object-cover" draggable={false} />
+                )}
+                
+                {beforeLog.photo_url && (
+                  <div className="absolute inset-0 overflow-hidden" style={{ width: `${sliderPosition}%` }}>
+                    <div className="relative w-full h-full" style={{ width: sliderRef.current ? sliderRef.current.offsetWidth : '100vw' }}>
+                      <Image src={beforeLog.photo_url} alt="Before" fill className="object-cover" draggable={false} />
                     </div>
                   </div>
-                  
-                  <button onClick={() => deletePhoto(log.id)} className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-500/80 transition-all z-20">
-                    <Trash2 className="w-4 h-4 text-white" />
-                  </button>
+                )}
+                
+                <div className="absolute top-0 bottom-0 w-1 bg-white cursor-ew-resize shadow-[0_0_10px_rgba(0,0,0,0.5)] z-20" style={{ left: `calc(${sliderPosition}% - 2px)` }}>
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-lg border border-gray-200">
+                    <div className="flex gap-0.5"><ChevronLeft className="w-4 h-4 text-black" /><ChevronRight className="w-4 h-4 text-black -ml-2" /></div>
+                  </div>
                 </div>
-              )}
+
+                <div className="absolute bottom-4 left-4 right-4 flex justify-between pointer-events-none z-30 drop-shadow-md">
+                  <span className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-lg text-xs font-bold text-white border border-white/20">Before: {beforeLog.weight_kg}kg</span>
+                  <span className="bg-gold/80 backdrop-blur-md px-3 py-1.5 rounded-lg text-xs font-bold text-black border border-gold/50">After: {afterLog.weight_kg}kg</span>
+                </div>
+              </div>
+              
+              {/* Stats difference */}
+              <div className="mt-6 glass-card p-6 rounded-[2rem] flex items-center justify-center gap-8">
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest mb-1">Time Diff</p>
+                  <p className="text-2xl font-bold">{Math.abs(Math.round((new Date(afterLog.log_date).getTime() - new Date(beforeLog.log_date).getTime()) / (1000 * 60 * 60 * 24)))} days</p>
+                </div>
+                <div className="w-px h-12 bg-white/10" />
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest mb-1">Weight Change</p>
+                  <p className={`text-2xl font-bold ${afterLog.weight_kg > beforeLog.weight_kg ? 'text-blue-400' : 'text-green-400'}`}>
+                    {(afterLog.weight_kg - beforeLog.weight_kg) > 0 ? '+' : ''}{(afterLog.weight_kg - beforeLog.weight_kg).toFixed(1)} kg
+                  </p>
+                </div>
+              </div>
             </motion.div>
-          ))}
-        </motion.div>
+          ) : (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="columns-2 md:columns-3 lg:columns-4 gap-4 space-y-4 relative z-10"
+            >
+              {logs.map((log, index) => (
+                <motion.div 
+                  key={log.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className="break-inside-avoid glass-card rounded-2xl overflow-hidden group relative border border-white/5 shadow-lg"
+                >
+                  {log.photo_url && (
+                    <div className="relative w-full aspect-[3/4]">
+                      <Image src={log.photo_url} alt={`Progress`} fill className="object-cover transition-transform duration-500 group-hover:scale-105" sizes="(max-width: 768px) 50vw, 33vw" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 opacity-80 group-hover:opacity-100 transition-opacity" />
+                      
+                      <div className="absolute bottom-0 left-0 right-0 p-4 transform translate-y-2 group-hover:translate-y-0 transition-transform">
+                        <p className="text-xs text-gold font-bold mb-1">{format(new Date(log.log_date), 'MMM d, yyyy')}</p>
+                        <div className="flex items-end justify-between">
+                          <div className="flex items-center gap-1.5 text-white">
+                            <Scale className="w-4 h-4" />
+                            <span className="font-bold">{log.weight_kg}kg</span>
+                          </div>
+                          {log.body_fat_percent && (
+                            <div className="flex items-center gap-1.5 text-white/80">
+                              <Activity className="w-3 h-3" />
+                              <span className="text-xs font-medium">{log.body_fat_percent}% BF</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <button onClick={() => deletePhoto(log.id)} className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-500/80 transition-all z-20">
+                        <Trash2 className="w-4 h-4 text-white" />
+                      </button>
+                    </div>
+                  )}
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
+        </>
       )}
 
       {/* Upload Modal */}
