@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { motion, AnimatePresence } from 'framer-motion'
-import { CheckCircle, Clock, Play, Dumbbell, ChevronRight, X, Loader2, Trophy, Share2, Info, AlertTriangle } from 'lucide-react'
+import { CheckCircle, Clock, Play, Dumbbell, ChevronRight, X, Loader2, Trophy, Share2, Info, AlertTriangle, History, Repeat } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import AnatomyMap from '@/components/AnatomyMap'
@@ -60,6 +60,14 @@ export default function ActiveWorkoutPage() {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
   const [libraryEx, setLibraryEx] = useState<LibraryExercise | null>(null)
   const [loadingInfo, setLoadingInfo] = useState(false)
+
+  const [showHistoryModal, setShowHistoryModal] = useState(false)
+  const [historyLogs, setHistoryLogs] = useState<any[]>([])
+  const [loadingHistory, setLoadingHistory] = useState(false)
+
+  const [showSwapModal, setShowSwapModal] = useState(false)
+  const [swapOptions, setSwapOptions] = useState<LibraryExercise[]>([])
+  const [loadingSwap, setLoadingSwap] = useState(false)
   
   const { playSuccess } = useSound()
 
@@ -247,6 +255,67 @@ export default function ActiveWorkoutPage() {
     router.push('/dashboard')
   }
 
+  const loadHistory = async (exerciseName: string) => {
+    setLoadingHistory(true)
+    setShowHistoryModal(true)
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data } = await supabase
+        .from('workout_session_logs')
+        .select('weight_kg, reps_achieved, created_at')
+        .eq('user_id', user.id)
+        .ilike('exercise_name', exerciseName)
+        .order('created_at', { ascending: false })
+        .limit(5)
+      
+      setHistoryLogs(data || [])
+    } catch (err) {
+      toast.error('Failed to load history')
+    } finally {
+      setLoadingHistory(false)
+    }
+  }
+
+  const loadSwapOptions = async (exerciseName: string) => {
+    setLoadingSwap(true)
+    setShowSwapModal(true)
+    try {
+      const supabase = createClient()
+      const { data: currentEx } = await supabase.from('exercises').select('*').eq('name', exerciseName).single()
+      
+      if (currentEx && currentEx.target_muscles && currentEx.target_muscles.length > 0) {
+        const primaryMuscle = currentEx.target_muscles[0]
+        const { data: alternatives } = await supabase
+          .from('exercises')
+          .select('*')
+          .contains('target_muscles', [primaryMuscle])
+          .neq('name', exerciseName)
+          .limit(10)
+          
+        setSwapOptions(alternatives || [])
+      } else {
+        setSwapOptions([])
+      }
+    } catch (err) {
+      toast.error('Failed to load alternatives')
+    } finally {
+      setLoadingSwap(false)
+    }
+  }
+
+  const executeSwap = (newExName: string) => {
+    const updatedExercises = [...exercises]
+    updatedExercises[currentExerciseIdx] = {
+      ...updatedExercises[currentExerciseIdx],
+      name: newExName
+    }
+    setExercises(updatedExercises)
+    setShowSwapModal(false)
+    toast.success(`Swapped to ${newExName}`)
+  }
   const saveAndFinishWorkout = async (shareToCommunity: boolean) => {
     setIsSaving(true)
     try {
@@ -488,7 +557,17 @@ export default function ActiveWorkoutPage() {
                 Set {currentSetIdx + 1} of {safeSets}
               </div>
               <div className="flex items-start justify-between mb-4 gap-4">
-                <h2 className="text-3xl font-heading font-bold leading-tight">{safeName}</h2>
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-1">
+                    <h2 className="text-3xl font-heading font-bold leading-tight">{safeName}</h2>
+                    <button 
+                      onClick={() => loadSwapOptions(safeName)}
+                      className="w-8 h-8 rounded-full bg-gold/20 text-gold flex items-center justify-center hover:bg-gold hover:text-black transition-colors shrink-0"
+                    >
+                      <Repeat className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
                 <button 
                   onClick={async () => {
                     setShowInfoModal(true)
@@ -503,7 +582,16 @@ export default function ActiveWorkoutPage() {
                   <Info className="w-6 h-6" />
                 </button>
               </div>
-              <p className="text-muted-foreground mb-8 text-lg">Target: <span className="text-gold font-bold">{safeReps}</span> reps</p>
+              
+              <div className="flex justify-between items-end mb-8">
+                <p className="text-muted-foreground text-lg">Target: <span className="text-gold font-bold">{safeReps}</span> reps</p>
+                <button 
+                  onClick={() => loadHistory(safeName)}
+                  className="flex items-center gap-1.5 text-xs font-bold text-gold bg-gold/10 px-3 py-1.5 rounded-lg hover:bg-gold/20 transition-colors"
+                >
+                  <History className="w-4 h-4" /> History
+                </button>
+              </div>
               
               <div className="grid grid-cols-2 gap-4 mb-8">
                 <div className="bg-black/30 p-4 rounded-3xl border border-white/5 focus-within:border-gold/50 transition-colors">
@@ -647,6 +735,101 @@ export default function ActiveWorkoutPage() {
                     </div>
                   </div>
                 </>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* History Modal */}
+      <AnimatePresence>
+        {showHistoryModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/80 backdrop-blur-sm" 
+              onClick={() => setShowHistoryModal(false)} 
+            />
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className="relative w-full max-w-sm max-h-[80vh] overflow-y-auto glass-card rounded-[2rem] p-6 border border-gold/20 shadow-2xl"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold font-heading flex items-center gap-2"><History className="w-5 h-5 text-gold"/> Weight History</h3>
+                <button onClick={() => setShowHistoryModal(false)} className="p-2 bg-white/5 rounded-full"><X className="w-4 h-4"/></button>
+              </div>
+
+              {loadingHistory ? (
+                <div className="py-10 flex justify-center"><Loader2 className="w-6 h-6 text-gold animate-spin" /></div>
+              ) : historyLogs.length === 0 ? (
+                <div className="py-10 text-center text-muted-foreground text-sm">
+                  <Dumbbell className="w-8 h-8 opacity-20 mx-auto mb-2"/>
+                  No previous logs found for this exercise.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {historyLogs.map((log, i) => {
+                    const d = new Date(log.created_at)
+                    return (
+                      <div key={i} className="flex justify-between items-center bg-black/40 p-4 rounded-xl border border-white/5">
+                        <div>
+                          <p className="text-gold font-bold text-lg">{log.weight_kg} kg</p>
+                          <p className="text-xs text-muted-foreground">{log.reps_achieved} reps</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-medium text-muted-foreground">{d.toLocaleDateString()}</p>
+                          <button onClick={() => { setCurrentWeight(log.weight_kg.toString()); setCurrentReps(log.reps_achieved.toString()); setShowHistoryModal(false); }} className="mt-1 text-xs text-gold underline opacity-70 hover:opacity-100">Copy</button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Swap Modal */}
+      <AnimatePresence>
+        {showSwapModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/80 backdrop-blur-sm" 
+              onClick={() => setShowSwapModal(false)} 
+            />
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className="relative w-full max-w-sm max-h-[80vh] overflow-y-auto glass-card rounded-[2rem] p-6 border border-gold/20 shadow-2xl"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold font-heading flex items-center gap-2"><Repeat className="w-5 h-5 text-gold"/> Swap Exercise</h3>
+                <button onClick={() => setShowSwapModal(false)} className="p-2 bg-white/5 rounded-full"><X className="w-4 h-4"/></button>
+              </div>
+
+              {loadingSwap ? (
+                <div className="py-10 flex justify-center"><Loader2 className="w-6 h-6 text-gold animate-spin" /></div>
+              ) : swapOptions.length === 0 ? (
+                <div className="py-10 text-center text-muted-foreground text-sm">
+                  No alternatives found in database.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {swapOptions.map((opt, i) => (
+                    <div key={i} onClick={() => executeSwap(opt.name)} className="bg-black/40 p-4 rounded-xl border border-white/5 hover:border-gold/30 cursor-pointer transition-colors flex justify-between items-center group">
+                      <div>
+                        <p className="font-bold text-sm group-hover:text-gold transition-colors">{opt.name}</p>
+                        <p className="text-xs text-muted-foreground">{opt.equipment}</p>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-white/20 group-hover:text-gold transition-colors" />
+                    </div>
+                  ))}
+                </div>
               )}
             </motion.div>
           </div>
