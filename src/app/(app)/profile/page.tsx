@@ -11,6 +11,7 @@ export default function ProfilePage() {
   const [userEmail, setUserEmail] = useState<string>('')
   const [memory, setMemory] = useState<UserMemory | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isAdmin, setIsAdmin] = useState(false)
   
   // Modals state
   const [activeModal, setActiveModal] = useState<string | null>(null)
@@ -41,6 +42,16 @@ export default function ProfilePage() {
         .select('*')
         .eq('user_id', user.id)
         .single()
+        
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .single()
+        
+      if (roleData?.role === 'admin') {
+        setIsAdmin(true)
+      }
         
       if (memData) {
         setMemory(memData as UserMemory)
@@ -257,6 +268,15 @@ export default function ProfilePage() {
       ]
     }
   ]
+
+  if (isAdmin) {
+    sections.push({
+      title: 'Administration',
+      items: [
+        { icon: Shield, label: 'Admin Dashboard', value: 'Live Users', action: () => window.location.href = '/admin' }
+      ]
+    })
+  }
 
   return (
     <div className="relative min-h-screen">
