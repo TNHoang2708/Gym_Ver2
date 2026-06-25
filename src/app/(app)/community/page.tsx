@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Users, Heart, MessageCircle, Flame, Dumbbell } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
+import PullToRefresh from '@/components/PullToRefresh'
 
 export default function CommunityFeedPage() {
   const [posts, setPosts] = useState<any[]>([])
@@ -47,7 +48,8 @@ export default function CommunityFeedPage() {
   }
 
   return (
-    <div className="min-h-screen pb-24 pt-6 px-4">
+    <PullToRefresh onRefresh={fetchPosts}>
+      <div className="min-h-screen pb-24 pt-6 px-4">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
@@ -149,6 +151,6 @@ export default function CommunityFeedPage() {
           ))
         )}
       </div>
-    </div>
+    </PullToRefresh>
   )
 }

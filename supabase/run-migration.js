@@ -31,8 +31,9 @@ if (!SUPABASE_URL || !SERVICE_KEY) {
   process.exit(1)
 }
 
+const migrationFile = process.argv[2] || '001_initial_schema.sql'
 const sql = fs.readFileSync(
-  path.join(__dirname, 'migrations', '001_initial_schema.sql'),
+  path.join(__dirname, 'migrations', migrationFile),
   'utf8'
 )
 

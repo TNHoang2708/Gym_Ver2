@@ -163,30 +163,67 @@ export default function ProfilePage() {
     setIsSubmitting(false)
   }
 
-  async function updatePhoto(e: React.FormEvent) {
-    e.preventDefault()
-    if (!memory) return
-    setIsSubmitting(true)
+  const [uploadingImage, setUploadingImage] = useState(false)
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !memory) return
     
-    const updatedHard = {
-      ...memory.hard_memory,
-      avatar_url: photoUrl
+    // Quick validation
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('File must be less than 2MB')
+      return
     }
 
+    setUploadingImage(true)
     const supabase = createClient()
-    const { error } = await supabase
-      .from('user_memory')
-      .update({ hard_memory: updatedHard })
-      .eq('user_id', memory.user_id)
+    
+    try {
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${memory.user_id}-${Date.now()}.${fileExt}`
       
-    if (error) {
-      toast.error('Failed to update photo')
-    } else {
-      toast.success('Photo updated')
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file)
+        
+      if (uploadError) {
+        if (uploadError.message.includes('bucket')) {
+          toast.error("Vui lòng vào Supabase Dashboard tạo bucket 'avatars' trước nhé sếp!")
+          throw uploadError
+        }
+        throw uploadError
+      }
+      
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName)
+        
+      setPhotoUrl(publicUrl)
+      
+      // Auto save after upload
+      const updatedHard = {
+        ...memory.hard_memory,
+        avatar_url: publicUrl
+      }
+      
+      const { error: updateError } = await supabase
+        .from('user_memory')
+        .update({ hard_memory: updatedHard })
+        .eq('user_id', memory.user_id)
+        
+      if (updateError) throw updateError
+      
+      toast.success('Profile photo updated!')
       setMemory({ ...memory, hard_memory: updatedHard })
       setActiveModal(null)
+    } catch (error: any) {
+      console.error(error)
+      if (!error.message?.includes('bucket')) {
+        toast.error(error.message || 'Error uploading image')
+      }
+    } finally {
+      setUploadingImage(false)
     }
-    setIsSubmitting(false)
   }
 
   async function handleDeleteAccount() {
@@ -515,20 +552,41 @@ export default function ProfilePage() {
 
               {/* Photo Upload Modal */}
               {activeModal === 'photo' && (
-                <form onSubmit={updatePhoto} className="space-y-6 pt-4">
+                <div className="space-y-6 pt-4 text-center">
                   <div>
                     <h3 className="text-xl font-bold mb-2">Profile Photo</h3>
-                    <p className="text-sm text-muted-foreground">Update your avatar using an image URL.</p>
+                    <p className="text-sm text-muted-foreground mb-4">Choose an image (max 2MB)</p>
                   </div>
-                  <input
-                    type="url" value={photoUrl} onChange={(e) => setPhotoUrl(e.target.value)}
-                    placeholder="https://example.com/avatar.jpg"
-                    className="w-full bg-black/20 border border-white/5 rounded-2xl p-4 text-foreground focus:outline-none focus:ring-1 focus:ring-gold"
-                  />
-                  <button type="submit" disabled={isSubmitting} className="w-full py-4 bg-gold text-gold-foreground rounded-xl font-bold hover:bg-gold/90 transition-colors flex justify-center glow-gold">
-                    {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Set Photo'}
-                  </button>
-                </form>
+                  
+                  <div className="relative w-32 h-32 mx-auto mb-6">
+                    {photoUrl ? (
+                      <img src={photoUrl} alt="Avatar" className="w-full h-full rounded-full object-cover border-2 border-gold/30" />
+                    ) : (
+                      <div className="w-full h-full rounded-full bg-white/5 flex items-center justify-center border-2 border-white/10">
+                        <User className="w-12 h-12 text-muted-foreground" />
+                      </div>
+                    )}
+                    {uploadingImage && (
+                      <div className="absolute inset-0 bg-black/60 rounded-full flex items-center justify-center">
+                        <Loader2 className="w-8 h-8 text-gold animate-spin" />
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="relative w-full">
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handleFileUpload}
+                      disabled={uploadingImage}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed" 
+                    />
+                    <button className="w-full py-4 bg-gold text-gold-foreground rounded-xl font-bold hover:bg-gold/90 transition-colors flex items-center justify-center gap-2 glow-gold">
+                      <Camera className="w-5 h-5" />
+                      {uploadingImage ? 'Uploading...' : 'Upload New Photo'}
+                    </button>
+                  </div>
+                </div>
               )}
 
               {/* Delete Account Modal */}

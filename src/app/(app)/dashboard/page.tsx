@@ -13,6 +13,7 @@ import type { UserMemory, DailyNutritionSummary, WorkoutLog, WorkoutSchedule } f
 import { useDashboardData } from '@/lib/hooks/use-data'
 import AIQuickLogger from '@/components/AIQuickLogger'
 import NutritionOverview from '@/components/NutritionOverview'
+import PullToRefresh from '@/components/PullToRefresh'
 
 export default function DashboardPage() {
   const { data, isLoading, mutate } = useDashboardData()
@@ -140,7 +141,8 @@ export default function DashboardPage() {
   ]
 
   return (
-    <div className="relative min-h-[100dvh]">
+    <PullToRefresh onRefresh={async () => { await mutate() }}>
+      <div className="relative min-h-[100dvh]">
 
       <div className="relative z-10 max-w-xl mx-auto px-6 pt-12 pb-24 space-y-10">
         
@@ -279,6 +281,6 @@ export default function DashboardPage() {
         </motion.div>
 
       </div>
-    </div>
+    </PullToRefresh>
   )
 }
