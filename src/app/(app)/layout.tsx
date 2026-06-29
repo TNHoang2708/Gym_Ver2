@@ -18,11 +18,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const globalAnnouncement = settings?.find(s => s.key === 'global_announcement')?.value || ''
   const broadcastVersion = settings?.find(s => s.key === 'broadcast_version')?.value || ''
   
-  // If maintenance mode is active, check if user is admin
+  // If maintenance mode is active, check if user is admin via user_roles table
   let isAdmin = false
   if (maintenanceMode) {
-    const { data: { user } } = await supabase.auth.getUser()
-    isAdmin = user?.email?.includes('admin') || user?.email === 'admin@gymplanner.ai' || false
+    const { data: adminCheck } = await supabase.rpc('is_admin')
+    isAdmin = adminCheck === true
   }
 
   if (maintenanceMode && !isAdmin) {

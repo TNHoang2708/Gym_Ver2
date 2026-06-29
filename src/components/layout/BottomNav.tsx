@@ -2,16 +2,15 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Sparkles, BookHeart, Utensils, User, Users, Camera } from 'lucide-react'
+import { Home, Sparkles, Dumbbell, Utensils, User } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { haptic } from '@/lib/haptics'
 
 const navItems = [
   { href: '/dashboard', icon: Home, label: 'Home' },
-  { href: '/ai-coach', icon: Sparkles, label: 'AI Coach' },
-  { href: '/diary', icon: BookHeart, label: 'Diary' },
-  { href: '/community', icon: Users, label: 'Community' },
+  { href: '/workout', icon: Dumbbell, label: 'Workout' },
+  { href: '/ai-coach', icon: Sparkles, label: 'Coach' },
   { href: '/nutrition', icon: Utensils, label: 'Nutrition' },
-  { href: '/progress', icon: Camera, label: 'Progress' },
   { href: '/profile', icon: User, label: 'Profile' },
 ]
 
@@ -30,6 +29,7 @@ export function BottomNav() {
               key={item.href}
               href={item.href}
               prefetch={true}
+              onClick={() => { if (!isActive) haptic.light() }}
               className={`relative flex flex-col items-center justify-center w-14 h-12 rounded-full z-10 transition-all duration-300 transform-gpu hover:scale-105 active:scale-95 ${
                 isActive ? 'text-gold-foreground' : 'text-muted-foreground hover:text-foreground'
               }`}

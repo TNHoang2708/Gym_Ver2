@@ -123,14 +123,14 @@ export default function AIQuickLogger() {
     <>
       <form onSubmit={handleSubmitText} className="relative w-full max-w-xl mx-auto group">
         {/* Glow Effect */}
-        <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-400 to-blue-600 rounded-[2rem] blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
+        <div className="absolute -inset-0.5 bg-gradient-to-r from-gold to-yellow-600 rounded-[2rem] blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
         
         <div className="relative flex items-center bg-[#1A1E29]/80 backdrop-blur-xl border border-white/10 rounded-[2rem] p-2 shadow-2xl">
           <div className="pl-4 pr-2 flex items-center justify-center">
             {isLoading || isVisionLoading ? (
-              <Loader2 className="w-5 h-5 text-cyan-400 animate-spin" />
+              <Loader2 className="w-5 h-5 text-gold animate-spin" />
             ) : (
-              <Sparkles className="w-5 h-5 text-cyan-400 animate-pulse" />
+              <Sparkles className="w-5 h-5 text-gold animate-pulse" />
             )}
           </div>
           
@@ -166,7 +166,7 @@ export default function AIQuickLogger() {
           <button
             type="submit"
             disabled={isLoading || isVisionLoading || !text.trim()}
-            className="p-3 bg-cyan-500/20 hover:bg-cyan-500/40 text-cyan-400 rounded-xl transition-colors disabled:opacity-50 shrink-0"
+            className="p-3 bg-gold/20 hover:bg-gold/40 text-gold rounded-xl transition-colors disabled:opacity-50 shrink-0"
           >
             <Send className="w-4 h-4" />
           </button>
@@ -180,11 +180,11 @@ export default function AIQuickLogger() {
             initial={{ opacity: 0, scale: 0.95, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
-            className="absolute z-50 left-0 right-0 mt-4 mx-auto max-w-sm glass-card rounded-[2rem] p-4 border border-cyan-500/30 glow-cyan shadow-2xl"
+            className="absolute z-50 left-0 right-0 mt-4 mx-auto max-w-sm glass-card rounded-[2rem] p-4 border border-gold/30 glow-gold shadow-2xl"
           >
             <div className="flex items-start justify-between mb-4">
               <h3 className="font-bold text-lg flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-cyan-400" /> AI Vision Results
+                <Sparkles className="w-4 h-4 text-gold" /> AI Vision Results
               </h3>
               <button 
                 onClick={() => setVisionResult(null)}
@@ -201,7 +201,7 @@ export default function AIQuickLogger() {
               </div>
               <div className="flex-1">
                 <p className="font-bold text-foreground line-clamp-2">{visionResult.foodName}</p>
-                <p className="text-xl font-black text-cyan-400 mt-1">{visionResult.calories} kcal</p>
+                <p className="text-xl font-black text-gold mt-1">{visionResult.calories} kcal</p>
               </div>
             </div>
 
@@ -223,7 +223,7 @@ export default function AIQuickLogger() {
             <button
               onClick={handleConfirmVision}
               disabled={isLoading}
-              className="w-full py-3 bg-cyan-500 hover:bg-cyan-600 text-black font-bold rounded-xl flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+              className="w-full py-3 bg-gold hover:bg-yellow-500 text-black font-bold rounded-xl flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
             >
               {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Check className="w-5 h-5" /> Save Food Log</>}
             </button>

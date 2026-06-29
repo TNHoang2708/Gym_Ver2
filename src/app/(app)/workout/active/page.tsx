@@ -593,28 +593,35 @@ export default function ActiveWorkoutPage() {
                 </button>
               </div>
               
-              <div className="grid grid-cols-2 gap-4 mb-8">
-                <div className="bg-black/30 p-4 rounded-3xl border border-white/5 focus-within:border-gold/50 transition-colors">
-                  <label className="text-xs text-muted-foreground uppercase font-bold tracking-wider mb-3 block text-center">Weight (kg)</label>
-                  <input 
-                    type="number"
-                    inputMode="decimal"
-                    value={currentWeight}
-                    onChange={(e) => setCurrentWeight(e.target.value)}
-                    placeholder="0"
-                    className="w-full bg-transparent p-2 text-4xl font-bold text-center focus:outline-none placeholder:text-white/10"
-                  />
+              <div className="flex items-center justify-center gap-6 mb-8 bg-black/20 p-4 rounded-[2rem] border border-white/5">
+                <div className="flex flex-col items-center flex-1">
+                  <label className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Weight</label>
+                  <div className="flex items-end gap-1 focus-within:text-gold transition-colors">
+                    <input 
+                      type="number"
+                      inputMode="decimal"
+                      value={currentWeight}
+                      onChange={(e) => setCurrentWeight(e.target.value)}
+                      placeholder="0"
+                      className="w-20 bg-transparent text-4xl font-bold text-center focus:outline-none placeholder:text-white/10 text-white focus:text-gold transition-colors"
+                    />
+                    <span className="text-sm font-bold text-muted-foreground mb-1">kg</span>
+                  </div>
                 </div>
-                <div className="bg-black/30 p-4 rounded-3xl border border-white/5 focus-within:border-gold/50 transition-colors">
-                  <label className="text-xs text-muted-foreground uppercase font-bold tracking-wider mb-3 block text-center">Reps</label>
-                  <input 
-                    type="number"
-                    inputMode="numeric"
-                    value={currentReps}
-                    onChange={(e) => setCurrentReps(e.target.value)}
-                    placeholder="0"
-                    className="w-full bg-transparent p-2 text-4xl font-bold text-center focus:outline-none placeholder:text-white/10"
-                  />
+                <div className="w-[1px] h-12 bg-white/10"></div>
+                <div className="flex flex-col items-center flex-1">
+                  <label className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Reps</label>
+                  <div className="flex items-end gap-1 focus-within:text-gold transition-colors">
+                    <input 
+                      type="number"
+                      inputMode="numeric"
+                      value={currentReps}
+                      onChange={(e) => setCurrentReps(e.target.value)}
+                      placeholder="0"
+                      className="w-20 bg-transparent text-4xl font-bold text-center focus:outline-none placeholder:text-white/10 text-white focus:text-gold transition-colors"
+                    />
+                    <span className="text-sm font-bold text-muted-foreground mb-1">reps</span>
+                  </div>
                 </div>
               </div>
               
@@ -628,15 +635,10 @@ export default function ActiveWorkoutPage() {
             
             {/* Up Next Preview */}
             {currentSetIdx === safeSets - 1 && currentExerciseIdx < exercises.length - 1 && (
-              <div className="px-2">
-                <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest mb-3 pl-2">Up Next</p>
-                <div className="glass-card p-5 rounded-2xl flex items-center justify-between opacity-70">
-                  <div className="flex items-center gap-3">
-                    <Dumbbell className="w-5 h-5 text-muted-foreground" />
-                    <span className="font-bold">{exercises[currentExerciseIdx + 1]?.name || 'Next Exercise'}</span>
-                  </div>
-                  <span className="text-sm font-bold bg-white/10 px-3 py-1 rounded-lg">{exercises[currentExerciseIdx + 1]?.sets || 1} sets</span>
-                </div>
+              <div className="flex justify-center mt-2 opacity-50">
+                <p className="text-sm font-medium flex items-center gap-2">
+                  <Dumbbell className="w-4 h-4" /> Next: {exercises[currentExerciseIdx + 1]?.name} ({exercises[currentExerciseIdx + 1]?.sets || 1} sets)
+                </p>
               </div>
             )}
           </motion.div>

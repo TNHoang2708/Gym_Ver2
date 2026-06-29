@@ -2,13 +2,17 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Activity, Flame, Dumbbell, Trophy, Sparkles, Watch, ChevronDown, ChevronUp, Loader2, ArrowRight, Droplet, Scale } from 'lucide-react'
+import { Activity, Dumbbell, Trophy, Sparkles, Watch, ChevronDown, ChevronUp, Loader2, Droplet, Scale, X, BarChart2 } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { syncHealthData } from '@/lib/health/sync'
 import { haptic } from '@/lib/haptics'
 import { motion, AnimatePresence } from 'framer-motion'
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import dynamic from 'next/dynamic'
+const DashboardChart = dynamic(() => import('@/components/charts/DashboardChart'), { 
+  ssr: false, 
+  loading: () => <div className="w-full h-full flex justify-center items-center"><Loader2 className="w-6 h-6 animate-spin text-gold" /></div> 
+})
 import type { UserMemory, DailyNutritionSummary, WorkoutLog, WorkoutSchedule } from '@/types'
 import { useDashboardData } from '@/lib/hooks/use-data'
 import AIQuickLogger from '@/components/AIQuickLogger'
@@ -21,34 +25,51 @@ export default function DashboardPage() {
   const [syncingHealth, setSyncingHealth] = useState(false)
   const [insight, setInsight] = useState("Stay focused. Today is another opportunity to get closer to your goals.")
   const [showCharts, setShowCharts] = useState(false)
-  
-  // Local state for Quick Actions
+
+  // Quick Actions state
   const [waterLogged, setWaterLogged] = useState(0)
-  const [weightLogged, setWeightLogged] = useState(false)
+  const [loggingWater, setLoggingWater] = useState(false)
+  // Weight Modal state
+  const [showWeightModal, setShowWeightModal] = useState(false)
+  const [weightInput, setWeightInput] = useState('')
+  const [savingWeight, setSavingWeight] = useState(false)
 
   // Determine Greeting based on time
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Good Morning' : hour < 18 ? 'Good Afternoon' : 'Good Evening'
 
   useEffect(() => {
-    if (data && !(data as any).insightFetched) {
-      setInsightLoading(true)
-      fetch('/api/insight', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nutrition: data.nutrition, workoutStreak: data.streak })
-      })
-      .then(res => res.json())
-      .then(json => {
-        if (json.insight) {
-          setInsight(json.insight)
-          mutate(prev => prev ? { ...prev, insightFetched: true } as any : prev, false)
+    if (!data) return
+    // Cache insight in localStorage — TTL 6 hours to avoid unnecessary API calls
+    const CACHE_KEY = 'dashboard_insight'
+    const TTL_MS = 6 * 60 * 60 * 1000
+    try {
+      const cached = localStorage.getItem(CACHE_KEY)
+      if (cached) {
+        const { text, ts } = JSON.parse(cached)
+        if (Date.now() - ts < TTL_MS) {
+          setInsight(text)
+          return
         }
-      })
-      .catch(err => console.error('Failed to fetch insight:', err))
-      .finally(() => setInsightLoading(false))
-    }
-  }, [data])
+      }
+    } catch {}
+
+    setInsightLoading(true)
+    fetch('/api/insight', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nutrition: data.nutrition, workoutStreak: data.streak })
+    })
+    .then(res => res.json())
+    .then(json => {
+      if (json.insight) {
+        setInsight(json.insight)
+        try { localStorage.setItem(CACHE_KEY, JSON.stringify({ text: json.insight, ts: Date.now() })) } catch {}
+      }
+    })
+    .catch(err => console.error('Failed to fetch insight:', err))
+    .finally(() => setInsightLoading(false))
+  }, [data?.streak])
 
   if (isLoading || !data) {
     return (
@@ -113,32 +134,73 @@ export default function DashboardPage() {
     setSyncingHealth(false)
   }
 
-  // Chart Data Preparation (Last 7 Days)
+  async function handleLogWater() {
+    if (loggingWater) return
+    setLoggingWater(true)
+    haptic.success()
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const today = new Date().toISOString().split('T')[0]
+      await supabase.from('food_logs').insert({
+        user_id: user.id,
+        log_date: today,
+        name: 'Water 💧',
+        calories: 0,
+        protein_g: 0,
+        carbs_g: 0,
+        fat_g: 0,
+      })
+      setWaterLogged(prev => prev + 250)
+      toast.success(`Water logged (${waterLogged + 250}ml today) 💧`)
+    } catch {
+      toast.error('Failed to log water')
+    }
+    setLoggingWater(false)
+  }
+
+  async function handleSaveWeight() {
+    if (!weightInput || isNaN(parseFloat(weightInput))) {
+      toast.error('Enter a valid weight')
+      return
+    }
+    setSavingWeight(true)
+    haptic.medium()
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const today = new Date().toISOString().split('T')[0]
+      const { error } = await supabase.from('weight_logs').upsert({
+        user_id: user.id,
+        log_date: today,
+        weight_kg: parseFloat(weightInput),
+      }, { onConflict: 'user_id,log_date' })
+      if (error) throw error
+      toast.success(`Weight logged: ${weightInput} kg ⚖️`)
+      setShowWeightModal(false)
+      setWeightInput('')
+      mutate()
+    } catch {
+      toast.error('Failed to log weight')
+    }
+    setSavingWeight(false)
+  }
+
+  // Chart Data — Real data only, no fake fallback
   const chartData = []
   const today = new Date()
-  
-  // Fake data for visual testing
-  const mockData = [4500, 0, 5200, 3100, 0, 6000, 2500]
-  
   for (let i = 6; i >= 0; i--) {
     const d = new Date(today)
     d.setDate(d.getDate() - i)
     const dateStr = d.toISOString().split('T')[0]
     const shortName = d.toLocaleDateString('en-US', { weekday: 'short' })
-    const log = workoutLogs.find(l => l.log_date === dateStr)
-    
-    // Use actual log if exists, otherwise use mock data for demo
-    const volume = log?.volume_kg || mockData[6 - i]
-    
-    chartData.push({ name: shortName, volume: volume })
+    const log = workoutLogs.find((l: any) => l.log_date === dateStr)
+    chartData.push({ name: shortName, volume: log?.volume_kg || 0 })
   }
+  const hasRealChartData = chartData.some(d => d.volume > 0)
 
-  const metrics = [
-    { label: 'Calories', value: nutrition?.calories || 0, goal: nutrition?.goal_calories || 2000, icon: Flame, color: 'text-orange-500' },
-    { label: 'Protein', value: `${nutrition?.protein_g || 0}g`, goal: `${nutrition?.goal_protein_g || 150}g`, icon: Dumbbell, color: 'text-gold' },
-    { label: 'Mood', value: memory?.emotional_memory?.current?.mood || 'Neutral', goal: 'Status', icon: Activity, color: 'text-green-500' },
-    { label: 'Streak', value: `${streak}`, goal: 'Days', icon: Trophy, color: 'text-yellow-400' },
-  ]
 
   return (
     <PullToRefresh onRefresh={async () => { await mutate() }}>
@@ -186,22 +248,21 @@ export default function DashboardPage() {
           
           <div className="flex gap-3">
             <button 
-              onClick={() => { setWaterLogged(prev => prev + 250); haptic.success(); toast.success('Logged 250ml Water 💧'); }}
+              onClick={handleLogWater}
+              disabled={loggingWater}
               className={`flex-1 glass-card p-3.5 rounded-2xl flex flex-col items-center justify-center gap-2 transition-colors active:scale-95 transform-gpu ${waterLogged > 0 ? 'bg-blue-500/10 border-blue-500/40' : 'hover:bg-white/5 border-blue-500/20'}`}
             >
-              <Droplet className={`w-5 h-5 ${waterLogged > 0 ? 'text-blue-300' : 'text-blue-400'}`} />
+              {loggingWater ? <Loader2 className="w-5 h-5 text-blue-400 animate-spin" /> : <Droplet className={`w-5 h-5 ${waterLogged > 0 ? 'text-blue-300' : 'text-blue-400'}`} />}
               <span className={`text-xs font-bold ${waterLogged > 0 ? 'text-blue-300' : 'text-blue-400'}`}>
-                {waterLogged > 0 ? `Water (${waterLogged}ml)` : 'Water'}
+                {waterLogged > 0 ? `${waterLogged}ml` : 'Water'}
               </span>
             </button>
             <button 
-              onClick={() => { setWeightLogged(true); haptic.light(); toast.info('Weigh-in recorded ⚖️'); }}
-              className={`flex-1 glass-card p-3.5 rounded-2xl flex flex-col items-center justify-center gap-2 transition-colors active:scale-95 transform-gpu ${weightLogged ? 'bg-green-500/10 border-green-500/40' : 'hover:bg-white/5 border-green-500/20'}`}
+              onClick={() => { haptic.light(); setShowWeightModal(true) }}
+              className="flex-1 glass-card p-3.5 rounded-2xl flex flex-col items-center justify-center gap-2 hover:bg-white/5 border-green-500/20 transition-colors active:scale-95 transform-gpu"
             >
-              <Scale className={`w-5 h-5 ${weightLogged ? 'text-green-300' : 'text-green-400'}`} />
-              <span className={`text-xs font-bold ${weightLogged ? 'text-green-300' : 'text-green-400'}`}>
-                {weightLogged ? 'Logged ✓' : 'Weight'}
-              </span>
+              <Scale className="w-5 h-5 text-green-400" />
+              <span className="text-xs font-bold text-green-400">Weight</span>
             </button>
           </div>
         </motion.div>
@@ -259,21 +320,17 @@ export default function DashboardPage() {
                 className="overflow-hidden"
               >
                 <div className="pt-2 pb-6 px-2">
-                  <div className="h-[200px] w-full bg-gradient-to-b from-white/[0.02] to-black/20 rounded-2xl p-4 border border-white/5 relative overflow-hidden shadow-inner">
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[60%] h-[1px] bg-gradient-to-r from-transparent via-gold/20 to-transparent" />
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={chartData}>
-                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#888', fontSize: 10 }} dy={5} />
-                        <Tooltip 
-                          cursor={false}
-                          contentStyle={{ backgroundColor: 'rgba(10,10,10,0.95)', backdropFilter: 'blur(10px)', border: '1px solid rgba(212,175,106,0.2)', borderRadius: '0.75rem', boxShadow: '0 4px 20px rgba(0,0,0,0.5)' }}
-                          itemStyle={{ color: '#D4AF6A', fontWeight: 'bold' }}
-                          formatter={(value: any) => [`${value} kg`, 'Volume']}
-                        />
-                        <Bar dataKey="volume" fill="#D4AF6A" radius={[4, 4, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
+                  {hasRealChartData ? (
+                    <div className="h-[200px] w-full bg-gradient-to-b from-white/[0.02] to-black/20 rounded-2xl p-4 border border-white/5 relative overflow-hidden shadow-inner">
+                      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[60%] h-[1px] bg-gradient-to-r from-transparent via-gold/20 to-transparent" />
+                      <DashboardChart data={chartData} />
+                    </div>
+                  ) : (
+                    <div className="h-[140px] flex flex-col items-center justify-center gap-3 rounded-2xl border border-white/5 bg-white/[0.02]">
+                      <BarChart2 className="w-8 h-8 text-muted-foreground/40" />
+                      <p className="text-sm text-muted-foreground">Complete a workout to see your volume chart</p>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             )}
@@ -282,6 +339,55 @@ export default function DashboardPage() {
 
       </div>
       </div>
+
+      {/* Weight Log Modal */}
+      <AnimatePresence>
+        {showWeightModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-end justify-center p-4 bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowWeightModal(false)}
+          >
+            <motion.div
+              initial={{ y: 60, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 60, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 35 }}
+              onClick={e => e.stopPropagation()}
+              className="w-full max-w-sm glass-card rounded-3xl p-6 space-y-5"
+            >
+              <div className="flex items-center justify-between">
+                <h3 className="font-heading font-bold text-lg">Log Today's Weight</h3>
+                <button onClick={() => setShowWeightModal(false)} className="p-1.5 rounded-full hover:bg-white/10 transition-colors">
+                  <X className="w-5 h-5 text-muted-foreground" />
+                </button>
+              </div>
+              <div className="flex items-center gap-3">
+                <input
+                  type="number"
+                  step="0.1"
+                  placeholder="e.g. 75.5"
+                  value={weightInput}
+                  onChange={e => setWeightInput(e.target.value)}
+                  autoFocus
+                  className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5 text-lg font-bold text-center focus:outline-none focus:border-gold/50 transition-colors"
+                />
+                <span className="text-muted-foreground font-semibold">kg</span>
+              </div>
+              <button
+                onClick={handleSaveWeight}
+                disabled={savingWeight}
+                className="w-full bg-gold text-gold-foreground font-bold py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all glow-gold"
+              >
+                {savingWeight ? <Loader2 className="w-5 h-5 animate-spin" /> : <Scale className="w-5 h-5" />}
+                Save Weight
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </PullToRefresh>
   )
 }

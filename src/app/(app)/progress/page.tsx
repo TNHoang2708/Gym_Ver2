@@ -7,7 +7,9 @@ import { Camera, Upload, Plus, Loader2, ChevronLeft, ChevronRight, Scale, Activi
 import { toast } from 'sonner'
 import Image from 'next/image'
 import { format } from 'date-fns'
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import dynamic from 'next/dynamic'
+const ProgressVolumeChart = dynamic(() => import('@/components/charts/ProgressVolumeChart'), { ssr: false })
+const ProgressWeightChart = dynamic(() => import('@/components/charts/ProgressWeightChart'), { ssr: false })
 
 interface ProgressLog {
   id: string
@@ -321,20 +323,7 @@ export default function ProgressGalleryPage() {
               ) : workoutLogs.length === 0 ? (
                 <div className="w-full h-full flex justify-center items-center text-muted-foreground text-sm">No workout data available.</div>
               ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={workoutLogs}>
-                    <XAxis dataKey="log_date" tickFormatter={(v) => new Date(v).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} stroke="#666" fontSize={10} tickLine={false} axisLine={false} dy={10} />
-                    <YAxis stroke="#666" fontSize={10} tickLine={false} axisLine={false} dx={-10} tickFormatter={(v) => `${(v/1000).toFixed(1)}k`} />
-                    <Tooltip 
-                      cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                      contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', borderColor: 'rgba(212,175,106,0.3)', borderRadius: '12px', backdropFilter: 'blur(10px)' }} 
-                      itemStyle={{ color: '#D4AF6A', fontWeight: 'bold' }} 
-                      labelStyle={{ color: '#888', marginBottom: '4px' }}
-                      formatter={(value: number) => [`${value} kg`, 'Volume']}
-                    />
-                    <Bar dataKey="volume_kg" fill="#D4AF6A" radius={[4, 4, 0, 0]} maxBarSize={40} />
-                  </BarChart>
-                </ResponsiveContainer>
+                <ProgressVolumeChart data={workoutLogs} />
               )}
             </div>
           </div>
@@ -346,19 +335,7 @@ export default function ProgressGalleryPage() {
               {logs.length === 0 ? (
                 <div className="w-full h-full flex justify-center items-center text-muted-foreground text-sm">No weight data available. Log a photo to track weight.</div>
               ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={[...logs].reverse()}>
-                    <XAxis dataKey="log_date" tickFormatter={(v) => new Date(v).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} stroke="#666" fontSize={10} tickLine={false} axisLine={false} dy={10} />
-                    <YAxis domain={['dataMin - 2', 'dataMax + 2']} stroke="#666" fontSize={10} tickLine={false} axisLine={false} dx={-10} tickFormatter={(v) => `${v}kg`} />
-                    <Tooltip 
-                      contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', borderColor: 'rgba(212,175,106,0.3)', borderRadius: '12px', backdropFilter: 'blur(10px)' }} 
-                      itemStyle={{ color: '#D4AF6A', fontWeight: 'bold' }}
-                      labelStyle={{ color: '#888', marginBottom: '4px' }}
-                      formatter={(value: number) => [`${value} kg`, 'Weight']}
-                    />
-                    <Line type="monotone" dataKey="weight_kg" stroke="#D4AF6A" strokeWidth={3} dot={{ fill: '#000', stroke: '#D4AF6A', strokeWidth: 2, r: 4 }} activeDot={{ r: 6, fill: '#D4AF6A' }} />
-                  </LineChart>
-                </ResponsiveContainer>
+                <ProgressWeightChart data={[...logs].reverse()} />
               )}
             </div>
           </div>

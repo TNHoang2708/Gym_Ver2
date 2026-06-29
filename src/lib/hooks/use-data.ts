@@ -20,7 +20,7 @@ export function useDashboardData() {
     ] = await Promise.all([
       supabase.from('user_memory').select('*').eq('user_id', user.id).single(),
       supabase.from('food_logs').select('*').eq('user_id', user.id).eq('log_date', today),
-      supabase.from('workout_logs').select('*').eq('user_id', user.id).order('log_date', { ascending: false }),
+      supabase.from('workout_logs').select('*').eq('user_id', user.id).order('log_date', { ascending: false }).limit(90),
       supabase.from('workout_schedules').select('*').eq('user_id', user.id).eq('active', true).order('created_at', { ascending: false }).limit(1)
     ])
 
@@ -87,8 +87,9 @@ export function useDashboardData() {
   }
 
   const { data, error, mutate, isLoading } = useSWR('dashboardData', fetcher, {
-    revalidateOnFocus: true,
-    dedupingInterval: 60000, // 1 minute cache
+    revalidateOnFocus: false,
+    refreshInterval: 300000, // refresh every 5 minutes
+    dedupingInterval: 60000,
   })
 
   return { data, error, isLoading, mutate }
@@ -109,7 +110,8 @@ export function useDiaryData() {
   }
 
   const { data, error, mutate, isLoading } = useSWR('diaryData', fetcher, {
-    revalidateOnFocus: true,
+    revalidateOnFocus: false,
+    refreshInterval: 300000,
     dedupingInterval: 60000,
   })
 
@@ -135,7 +137,8 @@ export function useWorkoutHistory() {
   }
 
   const { data, error, mutate, isLoading } = useSWR('workoutHistoryData', fetcher, {
-    revalidateOnFocus: true,
+    revalidateOnFocus: false,
+    refreshInterval: 300000,
   })
 
   return { data, error, isLoading, mutate }
@@ -197,7 +200,8 @@ export function useNutritionData() {
   }
 
   const { data, error, mutate, isLoading } = useSWR('nutritionData', fetcher, {
-    revalidateOnFocus: true,
+    revalidateOnFocus: false,
+    refreshInterval: 300000,
     dedupingInterval: 60000,
   })
 
