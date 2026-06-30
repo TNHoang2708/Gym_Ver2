@@ -1,6 +1,5 @@
 {
   "framework": "nextjs",
-  "buildCommand": "bun run build",
-  "devCommand": "bun run dev",
+  "buildCommand": "next build --no-turbopack",
   "installCommand": "bun install"
 }
