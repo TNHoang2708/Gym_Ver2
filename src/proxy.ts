@@ -36,6 +36,7 @@ export async function proxy(request: NextRequest) {
   // The app routes are at the root: /, /ai-coach, /nutrition, /profile, /social
   // Exclude /login, /signup, /auth/callback and public assets
   const isPublicRoute = 
+    request.nextUrl.pathname === '/' ||
     request.nextUrl.pathname === '/login' ||
     request.nextUrl.pathname === '/signup' ||
     request.nextUrl.pathname.startsWith('/auth') ||
