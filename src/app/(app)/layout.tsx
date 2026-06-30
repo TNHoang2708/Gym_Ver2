@@ -21,8 +21,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // If maintenance mode is active, check if user is admin via user_roles table
   let isAdmin = false
   if (maintenanceMode) {
-    const { data: adminCheck } = await supabase.rpc('is_admin')
-    isAdmin = adminCheck === true
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      const { data: memory } = await supabase.from('user_memory').select('is_admin').eq('user_id', user.id).single()
+      isAdmin = memory?.is_admin === true
+    }
   }
 
   if (maintenanceMode && !isAdmin) {
