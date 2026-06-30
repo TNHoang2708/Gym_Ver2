@@ -1,5 +1,5 @@
 {
   "framework": "nextjs",
-  "buildCommand": "next build && test -f .next/server/middleware.js.nft.json || echo '{\"version\":1,\"files\":[]}' > .next/server/middleware.js.nft.json",
+  "buildCommand": "next build",
   "installCommand": "bun install"
 }

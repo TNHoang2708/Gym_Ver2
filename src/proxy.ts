@@ -15,9 +15,7 @@ export async function proxy(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          )
+          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
           supabaseResponse = NextResponse.next({
             request,
           })
@@ -29,75 +27,33 @@ export async function proxy(request: NextRequest) {
     }
   )
 
-  // Refresh session if expired
+  // Refresh session if expired - required for Server Components
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const { pathname } = request.nextUrl
+  // Protect all /(app) routes
+  // The app routes are at the root: /, /ai-coach, /nutrition, /profile, /social
+  // Exclude /login, /signup, /auth/callback and public assets
+  const isPublicRoute = 
+    request.nextUrl.pathname === '/login' ||
+    request.nextUrl.pathname === '/signup' ||
+    request.nextUrl.pathname.startsWith('/auth') ||
+    request.nextUrl.pathname.startsWith('/_next') ||
+    request.nextUrl.pathname.includes('.') // static files
 
-  // Public routes that don't require auth
-  const publicRoutes = ['/', '/login', '/register']
-  const isPublicRoute = publicRoutes.some(
-    (route) => pathname === route || pathname.startsWith('/api/')
-  )
-
-  // Admin Route Protection
-  if (pathname.startsWith('/admin')) {
-    if (!user) {
-      return NextResponse.redirect(new URL('/login', request.url))
-    }
-    const isAdmin = user.email === 'admin@gymplanner.ai' || user.email?.includes('admin')
-    if (!isAdmin) {
-      return NextResponse.redirect(new URL('/dashboard', request.url))
-    }
-  }
-
-  // Redirect unauthenticated users to login
   if (!user && !isPublicRoute) {
-    const loginUrl = request.nextUrl.clone()
-    loginUrl.pathname = '/login'
-    return NextResponse.redirect(loginUrl)
+    // No user, redirect to login
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
+    return NextResponse.redirect(url)
   }
 
-  // Redirect authenticated users away from auth pages
-  if (user && (pathname === '/login' || pathname === '/register')) {
-    // Check if user has completed onboarding
-    const { data: memory } = await supabase
-      .from('user_memory')
-      .select('hard_memory')
-      .eq('user_id', user.id)
-      .single()
-
-    const hasOnboarded =
-      memory?.hard_memory && Object.keys(memory.hard_memory).length > 0
-
-    const redirectUrl = request.nextUrl.clone()
-    redirectUrl.pathname = hasOnboarded ? '/ai-coach' : '/onboarding'
-    return NextResponse.redirect(redirectUrl)
-  }
-
-  // Redirect authenticated users who haven't onboarded to /onboarding
-  if (
-    user &&
-    !pathname.startsWith('/onboarding') &&
-    pathname !== '/login' &&
-    pathname !== '/register'
-  ) {
-    const { data: memory } = await supabase
-      .from('user_memory')
-      .select('hard_memory')
-      .eq('user_id', user.id)
-      .single()
-
-    const hasOnboarded =
-      memory?.hard_memory && Object.keys(memory.hard_memory).length > 0
-
-    if (!hasOnboarded) {
-      const onboardingUrl = request.nextUrl.clone()
-      onboardingUrl.pathname = '/onboarding'
-      return NextResponse.redirect(onboardingUrl)
-    }
+  // If user is logged in and trying to access /login, redirect to /dashboard
+  if (user && (request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/signup' || request.nextUrl.pathname === '/register')) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/dashboard'
+    return NextResponse.redirect(url)
   }
 
   return supabaseResponse
@@ -106,12 +62,12 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Match all request paths except:
+     * Match all request paths except for the ones starting with:
      * - _next/static (static files)
-     * - _next/image (image optimization)
-     * - favicon.ico (favicon)
-     * - public folder files
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * Feel free to modify this pattern to include more paths.
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|json|webmanifest|js)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
