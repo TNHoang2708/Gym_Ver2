@@ -69,20 +69,20 @@ USING (auth.uid() = user_id);
 -- 4. User Memory Policies
 CREATE POLICY "Users can only view their own memory"
 ON public.user_memory FOR SELECT
-USING (auth.uid() = id);
+USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can only insert their own memory"
 ON public.user_memory FOR INSERT
-WITH CHECK (auth.uid() = id);
+WITH CHECK (auth.uid() = user_id);
 
 CREATE POLICY "Users can only update their own memory"
 ON public.user_memory FOR UPDATE
-USING (auth.uid() = id)
-WITH CHECK (auth.uid() = id);
+USING (auth.uid() = user_id)
+WITH CHECK (auth.uid() = user_id);
 
 CREATE POLICY "Users can only delete their own memory"
 ON public.user_memory FOR DELETE
-USING (auth.uid() = id);
+USING (auth.uid() = user_id);
 
 -- 5. Exercises Table (Read-Only for all Authenticated users)
 CREATE POLICY "Authenticated users can read exercises"

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Utensils, Plus, Flame, Loader2, Trash2, Search, TrendingUp, Coffee, Sun, Moon, Cookie, X, Star, ScanLine, Camera } from 'lucide-react'
+import { Plus, Check, History, Loader2, Utensils, Search, Brain, Target, Info, Flame, SearchCode, Trash2, TrendingUp, Coffee, Sun, Moon, Cookie, X, Star, ScanLine, Camera } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
 import { Html5Qrcode } from 'html5-qrcode'
@@ -543,7 +543,7 @@ export default function NutritionPage() {
                   <div className="absolute inset-0 bg-gradient-to-br from-gold/30 to-blue-500/20 opacity-80 z-10 mix-blend-overlay"></div>
                   <div className="absolute inset-0 bg-black/40 z-10"></div>
                   <img 
-                    src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&q=80" 
+                    src={`https://image.pollinations.ai/prompt/delicious%20food%20${encodeURIComponent(aiRecipe.mealName)}`}
                     alt="AI Michelin Recipe" 
                     className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
                   />
@@ -578,14 +578,19 @@ export default function NutritionPage() {
                 </div>
 
                 <div className="mt-8 pt-6 border-t border-white/5">
-                  <button 
-                    onClick={() => { haptic.success(); logAIRecipe(); }}
-                    disabled={isLoggingAI}
-                    className="w-full py-4 bg-white/10 hover:bg-white/20 transition-colors rounded-xl font-bold text-white flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95 transform-gpu"
-                  >
-                    {isLoggingAI ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />} 
-                    {isLoggingAI ? 'Logging...' : 'Log This Meal'}
-                  </button>
+                  {(() => {
+                    const alreadyLogged = logs.some((l: FoodLog) => l.name === aiRecipe.mealName + ' (AI Generated)');
+                    return (
+                      <button 
+                        onClick={() => { haptic.success(); logAIRecipe(); }}
+                        disabled={isLoggingAI || alreadyLogged}
+                        className="w-full py-4 bg-white/10 hover:bg-white/20 transition-colors rounded-xl font-bold text-white flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95 transform-gpu"
+                      >
+                        {isLoggingAI ? <Loader2 className="w-5 h-5 animate-spin" /> : (alreadyLogged ? <Check className="w-5 h-5 text-green-400" /> : <Plus className="w-5 h-5" />)} 
+                        {isLoggingAI ? 'Logging...' : (alreadyLogged ? 'Logged Today' : 'Log This Meal')}
+                      </button>
+                    );
+                  })()}
                 </div>
               </motion.div>
             )}

@@ -3,18 +3,36 @@ import type { NextRequest } from 'next/server'
 import { generateObject } from 'ai'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { z } from 'zod'
+import { createClient } from '@/lib/supabase/server'
 
 // Force Node.js runtime for API routes
 export const runtime = 'nodejs'
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
-    const { targetCalories, targetProtein, dietaryLifestyles, allergies } = body
+    const supabase = await createClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
 
-    if (!targetCalories || !targetProtein) {
-      return NextResponse.json({ error: 'Missing target macros' }, { status: 400 })
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    const body = await req.json()
+    
+    // Strict Input Validation
+    const payloadSchema = z.object({
+      targetCalories: z.number().positive(),
+      targetProtein: z.number().positive(),
+      dietaryLifestyles: z.array(z.string()).optional(),
+      allergies: z.array(z.string()).optional()
+    })
+
+    const parsed = payloadSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid payload format' }, { status: 400 })
+    }
+
+    const { targetCalories, targetProtein, dietaryLifestyles, allergies } = parsed.data
 
     const google = createGoogleGenerativeAI({
       apiKey: process.env.GEMINI_API_KEY,
@@ -47,20 +65,16 @@ Ensure the recipe respects their allergies and lifestyles strictly. Provide ingr
 
     // Log telemetry
     if (usage) {
-      import('@/lib/supabase/server').then(async ({ createClient }) => {
-        const supabase = await createClient()
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user) {
-          const tokensUsed = usage.totalTokens || 0
-          const costEstimated = (tokensUsed / 1000) * 0.000150
-          await supabase.from('api_telemetry').insert({
-            user_id: user.id,
-            endpoint: '/api/recipes',
-            tokens_used: tokensUsed,
-            cost_estimated: costEstimated,
-          })
-        }
-      }).catch(console.error)
+      const tokensUsed = usage.totalTokens || 0
+      const costEstimated = (tokensUsed / 1000) * 0.000150
+      supabase.from('api_telemetry').insert({
+        user_id: user.id,
+        endpoint: '/api/recipes',
+        tokens_used: tokensUsed,
+        cost_estimated: costEstimated,
+      }).then(({ error }) => {
+        if (error) console.error('[Telemetry] Failed to log:', error)
+      })
     }
 
     return NextResponse.json({ recipe: object })

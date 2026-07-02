@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { generateObject } from 'ai'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { z } from 'zod'
+import { createClient } from '@/lib/supabase/server'
 
 // Allow large image payloads
 export const maxDuration = 30
@@ -25,12 +26,26 @@ const messages: any = [
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json()
-    const { image } = body
-    
-    if (!image) {
-      return NextResponse.json({ error: 'No image provided' }, { status: 400 })
+    const supabase = await createClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    const body = await req.json()
+    
+    // Strict Payload Validation
+    const payloadSchema = z.object({
+      image: z.string().min(10) // Base64 or DataURL must be string
+    })
+    
+    const parsed = payloadSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid payload format or missing image' }, { status: 400 })
+    }
+
+    const { image } = parsed.data
 
     console.log("== VISION API HIT ==")
     
@@ -56,26 +71,22 @@ export async function POST(req: Request) {
 
     // Log telemetry
     if (usage) {
-      import('@/lib/supabase/server').then(async ({ createClient }) => {
-        const supabase = await createClient()
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user) {
-          const tokensUsed = usage.totalTokens || 0
-          const costEstimated = (tokensUsed / 1000) * 0.000150
-          await supabase.from('api_telemetry').insert({
-            user_id: user.id,
-            endpoint: '/api/vision',
-            tokens_used: tokensUsed,
-            cost_estimated: costEstimated,
-          })
-        }
-      }).catch(console.error)
+      const tokensUsed = usage.totalTokens || 0
+      const costEstimated = (tokensUsed / 1000) * 0.000150
+      supabase.from('api_telemetry').insert({
+        user_id: user.id,
+        endpoint: '/api/vision',
+        tokens_used: tokensUsed,
+        cost_estimated: costEstimated,
+      }).then(({ error }) => {
+        if (error) console.error('[Telemetry] Failed to log:', error)
+      })
     }
 
     return NextResponse.json({ result: object })
 
   } catch (error: unknown) {
     console.error('Vision API Error:', error)
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to process image' }, { status: 500 })
+    return NextResponse.json({ error: 'AI service encountered an error.' }, { status: 500 })
   }
 }

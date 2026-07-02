@@ -352,6 +352,6 @@ export async function POST(request: NextRequest) {
       console.error('Failed to log telemetry error:', telemetryError)
     }
 
-    return NextResponse.json({ error: message }, { status: 500 })
+    return NextResponse.json({ error: 'AI service encountered an error.' }, { status: 500 })
   }
 }

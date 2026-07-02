@@ -2,6 +2,28 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function proxy(request: NextRequest) {
+  // 1. Anti-Bot Shield: Require User-Agent
+  const userAgent = request.headers.get('user-agent')
+  if (!userAgent || userAgent.length < 10) {
+    return new NextResponse('Forbidden: Missing or invalid User-Agent (Anti-Bot Shield)', { status: 403 })
+  }
+
+  // 2. CSRF Guard: Validate Origin on Mutations
+  const method = request.method
+  if (method === 'POST' || method === 'PUT' || method === 'DELETE' || method === 'PATCH') {
+    const origin = request.headers.get('origin')
+    const referer = request.headers.get('referer')
+    
+    // In production, ensure the request comes from our own domain.
+    // We allow localhost for development.
+    const isValidOrigin = origin ? (origin.includes(process.env.NEXT_PUBLIC_SITE_URL || 'localhost')) : false
+    const isValidReferer = referer ? (referer.includes(process.env.NEXT_PUBLIC_SITE_URL || 'localhost')) : false
+
+    if (!isValidOrigin && !isValidReferer) {
+      return new NextResponse('Forbidden: CSRF protection triggered', { status: 403 })
+    }
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   })
