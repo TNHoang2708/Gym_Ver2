@@ -1,26 +1,29 @@
 import fs from 'fs'
 import path from 'path'
 import crypto from 'crypto'
-import readline from 'readline'
 
 const ALGORITHM = 'aes-256-gcm'
 const TARGET_DIR = path.join(process.cwd(), 'claudekit-engineer-2.15.0')
 const ENCRYPTED_FILE = path.join(process.cwd(), 'claudekit-engineer.enc')
 
 function getKey(password) {
-  return crypto.scryptSync(password, 'forge_salt_2026', 32)
+  return crypto.scryptSync(password, 'forge_salt_2026_super_secure', 32)
 }
 
 export function encryptFolder(password) {
+  if (!fs.existsSync(TARGET_DIR)) {
+    console.error('❌ Target directory does not exist:', TARGET_DIR)
+    return
+  }
+
   const key = getKey(password)
   const iv = crypto.randomBytes(16)
   const cipher = crypto.createCipheriv(ALGORITHM, key, iv)
 
-  console.log('🔒 Encrypting ClaudeKit Engineer bundle...')
-  // Gather files
+  console.log('🔒 Encrypting ClaudeKit Engineer directory with AES-256-GCM...')
   const files = []
+
   function readDir(dir) {
-    if (!fs.existsSync(dir)) return
     for (const file of fs.readdirSync(dir)) {
       const fullPath = path.join(dir, file)
       if (fs.statSync(fullPath).isDirectory()) {
@@ -46,7 +49,7 @@ export function encryptFolder(password) {
   })
 
   fs.writeFileSync(ENCRYPTED_FILE, outputPayload)
-  console.log(`✅ Encrypted payload saved to ${ENCRYPTED_FILE}`)
+  console.log(`✅ SUCCESS: Encrypted payload generated at ${ENCRYPTED_FILE}`)
 }
 
 export function decryptFolder(password) {
@@ -54,6 +57,8 @@ export function decryptFolder(password) {
     console.error('❌ Encrypted payload file not found!')
     return
   }
+
+  console.log('🔓 Decrypting ClaudeKit Engineer payload...')
   const key = getKey(password)
   const payload = JSON.parse(fs.readFileSync(ENCRYPTED_FILE, 'utf8'))
   const iv = Buffer.from(payload.iv, 'hex')
@@ -73,11 +78,20 @@ export function decryptFolder(password) {
     for (const f of files) {
       const fullPath = path.join(TARGET_DIR, f.path)
       fs.mkdirSync(path.dirname(fullPath), { recursive: true })
-      fs.readFileSync
       fs.writeFileSync(fullPath, Buffer.from(f.content, 'base64'))
     }
-    console.log(`🔓 Successfully decrypted ClaudeKit Engineer into ${TARGET_DIR}`)
+    console.log(`✅ SUCCESS: ClaudeKit Engineer decrypted into ${TARGET_DIR}`)
   } catch (err) {
-    console.error('❌ Invalid password or corrupted payload!')
+    console.error('❌ INVALID PASSWORD! Decryption failed.')
   }
+}
+
+// CLI runner
+const action = process.argv[2]
+const pass = process.argv[3] || 'ForgeVault2026!'
+
+if (action === 'encrypt' || action === 'lock') {
+  encryptFolder(pass)
+} else if (action === 'decrypt' || action === 'unlock') {
+  decryptFolder(pass)
 }
