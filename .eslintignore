@@ -1,0 +1,9 @@
+.claude/
+claudekit-engineer-2.15.0/
+android/
+ios/
+*.cjs
+*.mjs
+scratch/
+test-results/
+playwright-report/
