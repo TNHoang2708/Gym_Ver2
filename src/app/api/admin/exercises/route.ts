@@ -1,22 +1,11 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { checkAdminAuthorization } from '@/lib/auth/admin-check'
 
-// Ensure caller is Admin
 async function requireAdmin() {
-  const supabase = await createClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-  if (authError || !user) throw new Error('Unauthorized')
-
-  const { data: memory } = await supabase
-    .from('user_memory')
-    .select('is_admin')
-    .eq('user_id', user.id)
-    .single()
-
-  if (!memory || !memory.is_admin) throw new Error('Forbidden')
-  
-  return supabase
+  const auth = await checkAdminAuthorization()
+  if (!auth.isAdmin) throw new Error(auth.user ? 'Forbidden' : 'Unauthorized')
+  return await createClient()
 }
 
 export async function GET() {

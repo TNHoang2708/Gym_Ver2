@@ -1,15 +1,13 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { callAIWithFallback } from '@/lib/ai'
+import { checkAdminAuthorization } from '@/lib/auth/admin-check'
 
 export async function POST(req: Request) {
   try {
+    const auth = await checkAdminAuthorization()
+    if (!auth.isAdmin) return auth.errorResponse!
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
 
     const body = await req.json()
     const { command } = body
