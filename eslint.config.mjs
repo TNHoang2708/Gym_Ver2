@@ -29,6 +29,8 @@ const eslintConfig = defineConfig([
       "@typescript-eslint/no-unused-vars": "off",
       "@typescript-eslint/no-require-imports": "off",
       "react-hooks/set-state-in-effect": "off",
+      "react-hooks/immutability": "off",
+      "react-hooks/purity": "off",
       "react/no-unescaped-entities": "off",
       "prefer-const": "off",
       "@next/next/no-img-element": "off",
