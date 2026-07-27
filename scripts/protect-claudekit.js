@@ -88,7 +88,7 @@ export function decryptFolder(password) {
 
 // CLI runner
 const action = process.argv[2]
-const pass = process.argv[3] || 'ForgeVault2026!'
+const pass = process.argv[3] || 'anhkin69'
 
 if (action === 'encrypt' || action === 'lock') {
   encryptFolder(pass)
