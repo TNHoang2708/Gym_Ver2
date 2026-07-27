@@ -6,25 +6,14 @@ import { Ghost, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 export function ImpersonationBanner() {
-  const [impersonateId, setImpersonateId] = useState<string | null>(null)
-  const [impersonateEmail, setImpersonateEmail] = useState<string | null>(null)
-  const router = useRouter()
-
-  useEffect(() => {
-    const id = Cookies.get('impersonate_user_id')
-    const email = Cookies.get('impersonate_user_email')
-    if (id) {
-      setImpersonateId(id)
-      setImpersonateEmail(email || id)
-    }
-  }, [])
+  const [impersonateId] = useState<string | null>(() => Cookies.get('impersonate_user_id') || null)
+  const [impersonateEmail] = useState<string | null>(() => Cookies.get('impersonate_user_email') || Cookies.get('impersonate_user_id') || null)
 
   if (!impersonateId) return null
 
   function handleExit() {
     Cookies.remove('impersonate_user_id')
     Cookies.remove('impersonate_user_email')
-    setImpersonateId(null)
     window.location.href = '/admin'
   }
 

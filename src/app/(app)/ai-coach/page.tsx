@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -24,19 +24,11 @@ export default function AICoachPage() {
   
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    loadSessions()
-  }, [])
-
-  useEffect(() => {
-    scrollToBottom()
-  }, [messages])
-
   function scrollToBottom() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
-  async function loadSessions() {
+  const loadSessions = useCallback(async () => {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
@@ -47,11 +39,24 @@ export default function AICoachPage() {
       .eq('user_id', user.id)
       .order('updated_at', { ascending: false })
 
-    if (data) {
+    if (data && data.length > 0) {
       setSessions(data as ChatSession[])
+      setActiveSessionId(data[0].id)
     }
     setInitLoading(false)
-  }
+  }, [])
+
+  useEffect(() => {
+    let isMounted = true
+    queueMicrotask(() => {
+      if (isMounted) loadSessions()
+    })
+    return () => { isMounted = false }
+  }, [loadSessions])
+
+  useEffect(() => {
+    scrollToBottom()
+  }, [messages])
 
   async function loadMessagesForSession(sessionId: string) {
     setLoading(true)

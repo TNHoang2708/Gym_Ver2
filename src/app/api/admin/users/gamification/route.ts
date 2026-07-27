@@ -17,7 +17,7 @@ export async function PUT(req: Request) {
 
     const adminClient = createAdminClient()
 
-    let updatePayload: any = {}
+    const updatePayload: Record<string, unknown> = {}
     if (action === 'set_vip') {
       updatePayload.subscription_tier = value
     } else if (action === 'update_xp') {

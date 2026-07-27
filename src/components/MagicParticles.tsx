@@ -14,7 +14,7 @@ export function MagicParticles() {
     let animationFrameId: number
     let width = window.innerWidth
     let height = window.innerHeight
-    let mouse = { x: -1000, y: -1000 }
+    const mouse = { x: -1000, y: -1000 }
 
     const setCanvasSize = () => {
       width = window.innerWidth

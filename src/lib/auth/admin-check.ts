@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 
 export interface AdminAuthResult {
   isAdmin: boolean
-  user: any | null
+  user: unknown | null
   errorResponse?: NextResponse
 }
 
@@ -49,12 +49,13 @@ export async function checkAdminAuthorization(): Promise<AdminAuthResult> {
       isAdmin: true,
       user,
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : 'Authorization failure'
     return {
       isAdmin: false,
       user: null,
       errorResponse: NextResponse.json(
-        { error: 'Internal Server Error', message: err.message || 'Authorization failure' },
+        { error: 'Internal Server Error', message: errorMsg },
         { status: 500 }
       ),
     }

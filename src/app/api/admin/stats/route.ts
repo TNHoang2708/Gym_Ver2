@@ -28,10 +28,10 @@ export async function GET(req: Request) {
       .limit(2000)
 
     const tData = telemetryData || []
-    const totalCost = tData.reduce((acc, curr) => acc + Number(curr.cost_estimated || 0), 0)
+    const totalCost = tData.reduce((acc: number, curr: Record<string, any>) => acc + Number(curr.cost_estimated || 0), 0)
 
     // Aggregate Daily API Token Usage
-    const tokenData = tData.reduce((acc: any, curr) => {
+    const tokenData = tData.reduce((acc: Record<string, number>, curr: Record<string, any>) => {
       const dateStr = new Date(curr.created_at).toISOString().split('T')[0]
       if (!acc[dateStr]) acc[dateStr] = 0
       acc[dateStr] += curr.tokens_used
@@ -51,7 +51,7 @@ export async function GET(req: Request) {
 
     const dauMap: Record<string, Set<string>> = {}
     if (recentLogs) {
-      recentLogs.forEach(log => {
+      recentLogs.forEach((log: { user_id: string; date: string }) => {
         if (!dauMap[log.date]) dauMap[log.date] = new Set()
         dauMap[log.date].add(log.user_id)
       })
@@ -75,7 +75,7 @@ export async function GET(req: Request) {
 
     const exerciseMap: Record<string, number> = {}
     if (sessionLogs) {
-      sessionLogs.forEach(log => {
+      sessionLogs.forEach((log: { exercise_name: string }) => {
         if (!exerciseMap[log.exercise_name]) {
           exerciseMap[log.exercise_name] = 0
         }

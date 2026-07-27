@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Save, Crown, Zap, Ghost } from 'lucide-react'
 import { toast } from 'sonner'
@@ -15,18 +15,14 @@ interface UserDetailDrawerProps {
 }
 
 export function UserDetailDrawer({ user, isOpen, onClose, onRefresh }: UserDetailDrawerProps) {
-  const [xp, setXp] = useState<number | null>(0)
-  const [streak, setStreak] = useState<number | null>(0)
-  const [tier, setTier] = useState('free')
+  const [xp, setXp] = useState<number | null>(null)
+  const [streak, setStreak] = useState<number | null>(null)
+  const [tier, setTier] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    if (user) {
-      setXp(user.xp_points || 0)
-      setStreak(user.streak_days || 0)
-      setTier(user.subscription_tier || 'free')
-    }
-  }, [user])
+  const currentXp = xp ?? user?.xp_points ?? 0
+  const currentStreak = streak ?? user?.streak_days ?? 0
+  const currentTier = tier ?? user?.subscription_tier ?? 'free'
 
   async function handleUpdate(action: string, value: any) {
     setLoading(true)
