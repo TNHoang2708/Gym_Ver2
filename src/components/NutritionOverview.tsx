@@ -1,6 +1,8 @@
+import React from 'react'
 import { type DailyNutritionSummary } from '@/types'
+import { Flame } from 'lucide-react'
 
-export default function NutritionOverview({ nutrition }: { nutrition?: DailyNutritionSummary | null }) {
+const NutritionOverview = React.memo(function NutritionOverview({ nutrition }: { nutrition?: DailyNutritionSummary | null }) {
   if (!nutrition) return null;
 
   const calPercent = Math.min((nutrition.calories / nutrition.goal_calories) * 100, 100) || 0
@@ -9,52 +11,69 @@ export default function NutritionOverview({ nutrition }: { nutrition?: DailyNutr
   const fatPercent = Math.min((nutrition.fat_g / nutrition.goal_fat_g) * 100, 100) || 0
 
   return (
-    <div className="glass-card p-6 rounded-[2rem] border border-white/5 shadow-xl relative overflow-hidden group">
-      <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-transparent pointer-events-none" />
-      
-      <div className="flex justify-between items-end mb-6 relative z-10">
-        <div>
-          <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1">Nutrition</p>
-          <p className="text-3xl font-heading font-bold text-foreground">
-            {nutrition.calories} <span className="text-sm font-normal text-muted-foreground">/ {nutrition.goal_calories} kcal</span>
-          </p>
+    <div className="bg-gradient-to-b from-[#161826] to-[#0E101B] p-6 md:p-7 rounded-3xl border border-white/10 shadow-xl space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-red-500/15 border border-red-500/30 flex items-center justify-center">
+            <Flame className="w-5 h-5 text-red-500" />
+          </div>
+          <div>
+            <span className="text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-widest">NUTRITION TARGET</span>
+            <p className="text-2xl md:text-3xl font-mono font-black text-white tabular-nums tracking-tight">
+              {nutrition.calories.toLocaleString()} <span className="text-xs text-zinc-400 font-normal">/ {nutrition.goal_calories.toLocaleString()} kcal</span>
+            </p>
+          </div>
         </div>
+        <span className="text-xs font-mono font-black text-red-400 bg-red-500/15 border border-red-500/30 px-3 py-1.5 rounded-xl">
+          {Math.round(calPercent)}%
+        </span>
       </div>
 
-      {/* Main Calorie Bar */}
-      <div className="h-3 w-full bg-black/40 rounded-full overflow-hidden mb-6 relative z-10 border border-white/5">
+      {/* Progress Bar */}
+      <div className="h-2.5 w-full bg-black/60 rounded-full overflow-hidden border border-white/10 p-0.5">
         <div 
-          className="h-full bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full transition-all duration-1000"
+          className="h-full bg-gradient-to-r from-red-600 via-orange-500 to-amber-400 rounded-full transition-all duration-700 shadow-[0_0_10px_rgba(239,68,68,0.5)]"
           style={{ width: `${calPercent}%` }}
         />
       </div>
 
-      <div className="grid grid-cols-3 gap-4 relative z-10">
-        {/* Protein */}
-        <div className="bg-black/20 p-3 rounded-2xl border border-white/5">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold mb-1">Protein</p>
-          <p className="font-bold text-foreground">{nutrition.protein_g}g <span className="text-xs text-muted-foreground font-normal">/ {nutrition.goal_protein_g}g</span></p>
-          <div className="h-1.5 w-full bg-black/40 rounded-full mt-2 overflow-hidden">
-            <div className="h-full bg-pink-500 rounded-full" style={{ width: `${proPercent}%` }} />
+      {/* Macros Grid */}
+      <div className="grid grid-cols-3 gap-3 md:gap-4">
+        <div className="bg-black/30 p-3.5 rounded-2xl border border-white/5 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-mono font-bold text-red-400 uppercase">Protein</span>
+            <span className="text-[10px] font-mono text-zinc-400">{Math.round(proPercent)}%</span>
+          </div>
+          <p className="text-base md:text-lg font-mono font-bold text-white tabular-nums">{nutrition.protein_g}g <span className="text-[10px] text-zinc-400 font-normal">/ {nutrition.goal_protein_g}g</span></p>
+          <div className="h-1.5 w-full bg-black/50 rounded-full overflow-hidden">
+            <div className="h-full bg-red-500 rounded-full" style={{ width: `${proPercent}%` }} />
           </div>
         </div>
-        {/* Carbs */}
-        <div className="bg-black/20 p-3 rounded-2xl border border-white/5">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold mb-1">Carbs</p>
-          <p className="font-bold text-foreground">{nutrition.carbs_g}g <span className="text-xs text-muted-foreground font-normal">/ {nutrition.goal_carbs_g}g</span></p>
-          <div className="h-1.5 w-full bg-black/40 rounded-full mt-2 overflow-hidden">
+
+        <div className="bg-black/30 p-3.5 rounded-2xl border border-white/5 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-mono font-bold text-amber-400 uppercase">Carbs</span>
+            <span className="text-[10px] font-mono text-zinc-400">{Math.round(carbPercent)}%</span>
+          </div>
+          <p className="text-base md:text-lg font-mono font-bold text-white tabular-nums">{nutrition.carbs_g}g <span className="text-[10px] text-zinc-400 font-normal">/ {nutrition.goal_carbs_g}g</span></p>
+          <div className="h-1.5 w-full bg-black/50 rounded-full overflow-hidden">
             <div className="h-full bg-amber-500 rounded-full" style={{ width: `${carbPercent}%` }} />
           </div>
         </div>
-        {/* Fat */}
-        <div className="bg-black/20 p-3 rounded-2xl border border-white/5">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold mb-1">Fat</p>
-          <p className="font-bold text-foreground">{nutrition.fat_g}g <span className="text-xs text-muted-foreground font-normal">/ {nutrition.goal_fat_g}g</span></p>
-          <div className="h-1.5 w-full bg-black/40 rounded-full mt-2 overflow-hidden">
+
+        <div className="bg-black/30 p-3.5 rounded-2xl border border-white/5 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-mono font-bold text-purple-400 uppercase">Fat</span>
+            <span className="text-[10px] font-mono text-zinc-400">{Math.round(fatPercent)}%</span>
+          </div>
+          <p className="text-base md:text-lg font-mono font-bold text-white tabular-nums">{nutrition.fat_g}g <span className="text-[10px] text-zinc-400 font-normal">/ {nutrition.goal_fat_g}g</span></p>
+          <div className="h-1.5 w-full bg-black/50 rounded-full overflow-hidden">
             <div className="h-full bg-purple-500 rounded-full" style={{ width: `${fatPercent}%` }} />
           </div>
         </div>
       </div>
     </div>
   )
-}
+})
+
+export default NutritionOverview

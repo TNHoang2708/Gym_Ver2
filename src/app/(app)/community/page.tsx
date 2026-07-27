@@ -42,7 +42,7 @@ export default function CommunityFeedPage() {
   }
 
   const handleFistBump = async (postId: string) => {
-    toast.success('Fist bump sent!', { icon: '👊' })
+    toast.info('Fist bumps coming soon! 👊')
     // In a real app, you would insert into post_likes here
     // and update the optimistic UI state
   }
@@ -65,7 +65,7 @@ export default function CommunityFeedPage() {
       <motion.div 
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="glass-card rounded-3xl p-6 mb-8 border-gold/30 glow-gold relative overflow-hidden"
+        className="iron-card rounded-3xl p-6 mb-8 border-gold/30 glow-gold relative overflow-hidden"
       >
         <div className="absolute top-0 right-0 w-32 h-32 bg-[radial-gradient(circle,rgba(212,175,106,0.15)_0%,transparent_70%)] pointer-events-none rounded-full" />
         <div className="flex items-center gap-3 mb-4">
@@ -97,7 +97,7 @@ export default function CommunityFeedPage() {
             <div className="w-8 h-8 border-4 border-gold border-t-transparent rounded-full animate-spin" />
           </div>
         ) : posts.length === 0 ? (
-          <div className="text-center p-10 glass-card rounded-3xl">
+          <div className="text-center p-10 iron-card rounded-3xl">
             <Dumbbell className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
             <p className="text-muted-foreground">It's quiet in here... go crush a workout and share it!</p>
           </div>
@@ -108,7 +108,7 @@ export default function CommunityFeedPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1 }}
-              className="glass-card rounded-3xl p-5"
+              className="iron-card rounded-3xl p-5"
             >
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
@@ -142,7 +142,10 @@ export default function CommunityFeedPage() {
                   <span className="text-lg">👊</span> 
                   <span className="text-xs font-bold text-muted-foreground">Fist Bump</span>
                 </button>
-                <button className="flex-1 py-2.5 bg-white/5 hover:bg-white/10 rounded-xl flex items-center justify-center gap-2 transition-colors border border-white/5">
+                <button 
+                  onClick={() => toast.info('Comments coming soon!')}
+                  className="flex-1 py-2.5 bg-white/5 hover:bg-white/10 rounded-xl flex items-center justify-center gap-2 transition-colors border border-white/5"
+                >
                   <MessageCircle className="w-4 h-4 text-muted-foreground" />
                   <span className="text-xs font-bold text-muted-foreground">Comment</span>
                 </button>

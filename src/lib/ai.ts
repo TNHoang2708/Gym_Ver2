@@ -73,13 +73,13 @@ export async function callAIWithFallback(options: AICallOptions): Promise<AIResp
 
     if (isFoodRelated) {
       return {
-        text: "Got it! I've logged your meal based on what you told me. Looks like some solid fuel for those gains! 💪\n\n[TOPIC: Nutrition]\n[NUTRITION: {\"food_name\":\"Whey Protein & Banana (Mock)\",\"calories\":340,\"protein_g\":26,\"carbs_g\":54,\"fat_g\":3}]",
+        text: "Got it! Unfortunately, my AI cloud brain is temporarily out of credits or quota, so I'm running in offline mode. I can't log this real meal to your database right now, but keep up the great nutrition! 💪",
         tokensUsed: 0
       }
     }
 
     return {
-      text: fallbackText || "It looks like my AI cloud brain is temporarily out of credits or quota, but don't let that stop your gains! I've automatically generated an Emergency 4-Day Split for you so we can keep the momentum going. Let's crush this! 💪\n\n[TOPIC: Workout Schedule]\n[SCHEDULE: {\"name\":\"Emergency 4-Day Split\",\"frequency\":4,\"days\":[{\"day\":\"Monday\",\"muscle_groups\":[\"Chest\",\"Shoulders\",\"Triceps\"],\"exercises\":[{\"name\":\"Bench Press\",\"sets\":4,\"reps\":\"8-10\"},{\"name\":\"Overhead Press\",\"sets\":3,\"reps\":\"10-12\"}]},{\"day\":\"Tuesday\",\"muscle_groups\":[\"Back\",\"Biceps\"],\"exercises\":[{\"name\":\"Pull-ups\",\"sets\":4,\"reps\":\"8-10\"},{\"name\":\"Barbell Rows\",\"sets\":3,\"reps\":\"10-12\"}]},{\"day\":\"Thursday\",\"muscle_groups\":[\"Legs\",\"Core\"],\"exercises\":[{\"name\":\"Squats\",\"sets\":4,\"reps\":\"8-10\"},{\"name\":\"Leg Press\",\"sets\":3,\"reps\":\"12-15\"}]},{\"day\":\"Friday\",\"muscle_groups\":[\"Full Body\"],\"exercises\":[{\"name\":\"Deadlifts\",\"sets\":4,\"reps\":\"5-8\"},{\"name\":\"Dumbbell Lunges\",\"sets\":3,\"reps\":\"10-12\"}]}]}]",
+      text: fallbackText || "It looks like my AI cloud brain is temporarily out of credits or quota, but don't let that stop your gains! I'm running in offline mode so I can't generate a real schedule for you to save, but here's an Emergency 4-Day Split for you to follow manually. Let's crush this! 💪\n\n- Monday: Chest, Shoulders, Triceps\n- Tuesday: Back, Biceps\n- Thursday: Legs, Core\n- Friday: Full Body",
       tokensUsed: 0
     }
   }

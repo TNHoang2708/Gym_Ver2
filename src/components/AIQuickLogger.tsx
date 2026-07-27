@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import React, { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Sparkles, Send, Loader2, Camera, X, Check } from 'lucide-react'
 import { toast } from 'sonner'
 import { useSWRConfig } from 'swr'
 import { createClient } from '@/lib/supabase/client'
 
-export default function AIQuickLogger() {
+const AIQuickLogger = React.memo(function AIQuickLogger() {
   const [text, setText] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isVisionLoading, setIsVisionLoading] = useState(false)
@@ -180,7 +180,7 @@ export default function AIQuickLogger() {
             initial={{ opacity: 0, scale: 0.95, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
-            className="absolute z-50 left-0 right-0 mt-4 mx-auto max-w-sm glass-card rounded-[2rem] p-4 border border-gold/30 glow-gold shadow-2xl"
+            className="absolute z-50 left-0 right-0 mt-4 mx-auto max-w-sm iron-card rounded-[2rem] p-4 border border-gold/30 glow-gold shadow-2xl"
           >
             <div className="flex items-start justify-between mb-4">
               <h3 className="font-bold text-lg flex items-center gap-2">
@@ -232,4 +232,6 @@ export default function AIQuickLogger() {
       </AnimatePresence>
     </>
   )
-}
+})
+
+export default AIQuickLogger

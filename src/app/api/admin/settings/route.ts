@@ -11,7 +11,8 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (!user.email?.includes('admin') && user.email !== 'admin@gymplanner.ai') {
+    const { data: roleData } = await supabase.from('user_roles').select('role').eq('user_id', user.id).single()
+    if (roleData?.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -44,7 +45,8 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (!user.email?.includes('admin') && user.email !== 'admin@gymplanner.ai') {
+    const { data: roleData } = await supabase.from('user_roles').select('role').eq('user_id', user.id).single()
+    if (roleData?.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 

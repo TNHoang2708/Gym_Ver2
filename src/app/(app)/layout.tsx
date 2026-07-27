@@ -8,6 +8,7 @@ import { Wrench } from 'lucide-react'
 
 import { GlobalAnnouncement } from '@/components/GlobalAnnouncement'
 import { OnlineTracker } from '@/components/OnlineTracker'
+import { ImpersonationBanner } from '@/components/admin/ImpersonationBanner'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -30,18 +31,18 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   if (maintenanceMode && !isAdmin) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 relative overflow-hidden">
+      <div className="relative bg-transparent flex flex-col items-center justify-center p-4 relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none z-0">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60vw] h-[60vw] bg-[radial-gradient(circle,rgba(249,115,22,0.1)_0%,transparent_70%)] rounded-full" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60vw] h-[60vw] bg-[radial-gradient(circle,rgba(220,38,38,0.1)_0%,transparent_70%)] rounded-full" />
         </div>
-        <div className="relative z-10 glass-card p-8 md:p-12 rounded-[2rem] text-center max-w-lg border border-orange-500/20">
-          <Wrench className="w-16 h-16 text-orange-500 mx-auto mb-6 animate-pulse" />
+        <div className="relative z-10 iron-card p-8 md:p-12 rounded-[2rem] text-center max-w-lg border border-red-500/20">
+          <Wrench className="w-16 h-16 text-red-500 mx-auto mb-6 animate-pulse" />
           <h1 className="text-3xl font-bold mb-4 font-heading text-foreground">System Maintenance</h1>
           <p className="text-muted-foreground mb-8">
             Forge is currently undergoing scheduled maintenance and upgrades. We are working hard to bring you a better experience. Please check back later!
           </p>
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-orange-500/10 text-orange-500 font-semibold text-sm">
-            <div className="w-2 h-2 rounded-full bg-orange-500 animate-ping" />
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/10 text-red-500 font-semibold text-sm">
+            <div className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
             Engineers at work
           </div>
         </div>
@@ -54,6 +55,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex flex-col min-h-screen">
+      <ImpersonationBanner />
       <OnlineTracker />
       {announcementKey && <GlobalAnnouncement key={announcementKey} text={globalAnnouncement} />}
       

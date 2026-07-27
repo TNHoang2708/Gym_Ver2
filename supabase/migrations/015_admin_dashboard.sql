@@ -17,20 +17,23 @@ begin
 end;
 $$ language plpgsql security definer set search_path = public;
 
--- Allow users to read their own role
-create policy "Users can read own role"
-  on public.user_roles for select
-  using ( auth.uid() = user_id );
+DO $$ 
+BEGIN
+  -- Allow users to read their own role
+  BEGIN
+    create policy "Users can read own role" on public.user_roles for select using ( auth.uid() = user_id );
+  EXCEPTION WHEN duplicate_object THEN NULL; END;
 
--- Allow admins to read all roles
-create policy "Admins can view all roles"
-  on public.user_roles for select
-  using ( public.is_admin() );
+  -- Allow admins to read all roles
+  BEGIN
+    create policy "Admins can view all roles" on public.user_roles for select using ( public.is_admin() );
+  EXCEPTION WHEN duplicate_object THEN NULL; END;
 
--- Update user_memory policy to let admins see all users
-create policy "Admins can view all user memory"
-  on public.user_memory for select
-  using ( public.is_admin() );
+  -- Update user_memory policy to let admins see all users
+  BEGIN
+    create policy "Admins can view all user memory" on public.user_memory for select using ( public.is_admin() );
+  EXCEPTION WHEN duplicate_object THEN NULL; END;
+END $$;
 
 -- Assign admin role to a specific email (You can modify this email before running)
 -- DO NOT RUN INSERT IF YOU DO NOT KNOW THE ID. 

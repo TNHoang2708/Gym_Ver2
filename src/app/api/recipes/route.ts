@@ -4,6 +4,7 @@ import { generateObject } from 'ai'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
+import { checkRateLimit } from '@/lib/rate-limit'
 
 // Force Node.js runtime for API routes
 export const runtime = 'nodejs'
@@ -15,6 +16,15 @@ export async function POST(req: NextRequest) {
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Giao Thức Tận Thế: Rate Limiting
+    const isAllowed = await checkRateLimit('/api/recipes', 10, 60)
+    if (!isAllowed) {
+      return NextResponse.json(
+        { error: 'Quá tải hệ thống. Bạn đang gửi quá nhiều yêu cầu. Hãy chậm lại.' },
+        { status: 429 }
+      )
     }
 
     const body = await req.json()

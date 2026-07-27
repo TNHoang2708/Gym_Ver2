@@ -5,10 +5,13 @@ import { createClient } from '@/lib/supabase/client'
 import { Activity, Target, Upload, Image as ImageIcon, Loader2, Camera, Ruler, ArrowRight, Save } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
-import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
-} from 'recharts'
+import dynamic from 'next/dynamic'
 import type { WeightLog, HardMemory } from '@/types'
+
+const BMIChart = dynamic(() => import('@/components/bmi/BMIChart'), {
+  ssr: false,
+  loading: () => <div className="w-full h-full animate-pulse bg-white/5 rounded-xl" />
+})
 
 type CalcMode = 'BMI' | 'BodyFat'
 
@@ -130,7 +133,11 @@ export default function BMIPage() {
   const handleSaveLog = async () => {
     setIsSubmitting(true)
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    if (!user) {
+      toast.error('Not logged in')
+      setIsSubmitting(false)
+      return
+    }
 
     const log_date = new Date().toISOString().split('T')[0]
     let photo_url = undefined
@@ -225,7 +232,7 @@ export default function BMIPage() {
           <button 
             onClick={handleSaveLog}
             disabled={isSubmitting}
-            className="hidden md:flex px-6 py-3 bg-gold text-gold-foreground rounded-xl font-semibold hover:bg-gold/90 transition-all items-center gap-2 glow-gold disabled:opacity-50"
+            className="hidden md:flex px-6 py-3 bg-gradient-fire text-white rounded-xl font-black transition-all items-center gap-2 glow-gold disabled:opacity-50 uppercase tracking-widest border-t border-white/20 shadow-lg"
           >
             {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             Save Today's Log
@@ -237,7 +244,7 @@ export default function BMIPage() {
           {/* Left Column: Input Form & Calculator */}
           <motion.div className="space-y-6" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
             
-            <div className="glass-card p-6 md:p-8 rounded-[2rem]">
+            <div className="iron-card p-6 md:p-8 rounded-[2rem]">
               <div className="flex items-center gap-2 mb-6 bg-black/20 p-1 rounded-xl">
                 <button 
                   onClick={() => setCalcMode('BMI')}
@@ -322,7 +329,7 @@ export default function BMIPage() {
               </div>
             </div>
 
-            <div className="glass-card p-6 rounded-[2rem]">
+            <div className="iron-card p-6 rounded-[2rem]">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-heading font-bold flex items-center gap-2"><Camera className="w-4 h-4 text-gold" /> Progress Photo</h3>
               </div>
@@ -351,7 +358,7 @@ export default function BMIPage() {
             <button 
               onClick={handleSaveLog}
               disabled={isSubmitting}
-              className="w-full md:hidden py-4 bg-gold text-gold-foreground rounded-2xl font-bold flex justify-center items-center gap-2 glow-gold disabled:opacity-50"
+              className="w-full md:hidden py-4 bg-gradient-fire text-white rounded-2xl font-black flex justify-center items-center gap-2 glow-gold disabled:opacity-50 uppercase tracking-widest border-t border-white/20 shadow-xl"
             >
               {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
               Save Metrics
@@ -363,7 +370,7 @@ export default function BMIPage() {
           <motion.div className="lg:col-span-2 space-y-6" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
             
             {/* Chart */}
-            <div className="glass-card p-6 md:p-8 rounded-[2rem] flex flex-col">
+            <div className="iron-card p-6 md:p-8 rounded-[2rem] flex flex-col">
               <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-gold/10 flex items-center justify-center">
@@ -383,26 +390,7 @@ export default function BMIPage() {
 
               <div className="flex-1 min-h-[300px] w-full">
                 {chartData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
-                      <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#888', fontSize: 12 }} dy={10} />
-                      <YAxis domain={['dataMin - 2', 'dataMax + 2']} axisLine={false} tickLine={false} tick={{ fill: '#888', fontSize: 12 }} />
-                      <Tooltip 
-                        contentStyle={{ backgroundColor: '#111', border: '1px solid rgba(212,175,106,0.2)', borderRadius: '1rem', color: '#fff' }}
-                        itemStyle={{ color: '#D4AF6A', fontWeight: 'bold' }}
-                      />
-                      <Line 
-                        type="monotone" 
-                        dataKey="weight" 
-                        name="Weight (kg)"
-                        stroke="#D4AF6A" 
-                        strokeWidth={3}
-                        dot={{ r: 4, fill: '#111', stroke: '#D4AF6A', strokeWidth: 2 }}
-                        activeDot={{ r: 6, fill: '#D4AF6A' }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+                  <BMIChart chartData={chartData} />
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground border border-dashed border-white/5 rounded-2xl">
                     <Activity className="w-8 h-8 mb-2 opacity-50" />
@@ -414,7 +402,7 @@ export default function BMIPage() {
             </div>
 
             {/* Photo Gallery */}
-            <div className="glass-card p-6 md:p-8 rounded-[2rem]">
+            <div className="iron-card p-6 md:p-8 rounded-[2rem]">
               <div className="flex items-center gap-3 mb-6">
                 <ImageIcon className="w-5 h-5 text-gold" />
                 <h2 className="text-xl font-heading font-bold">Progress Gallery</h2>

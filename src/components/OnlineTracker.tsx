@@ -13,6 +13,12 @@ export function OnlineTracker() {
 
       if (!user) return // Don't track anonymous users
 
+      // Remove existing channel if it exists to prevent "cannot add callbacks after subscribe" in React Strict Mode
+      const existingChannel = supabase.getChannels().find(c => c.topic === 'realtime:online-users')
+      if (existingChannel) {
+        await supabase.removeChannel(existingChannel)
+      }
+
       presenceChannel = supabase.channel('online-users', {
         config: {
           presence: {
@@ -40,7 +46,9 @@ export function OnlineTracker() {
 
     return () => {
       if (presenceChannel) {
-        presenceChannel.unsubscribe()
+        // Use removeChannel instead of just unsubscribe to clear it from the client's cache
+        const supabase = createClient()
+        supabase.removeChannel(presenceChannel)
       }
     }
   }, [])

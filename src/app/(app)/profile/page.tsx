@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { User, Settings, Shield, Bell, Key, LogOut, ChevronRight, Loader2, Camera, X, Save, Trash2 } from 'lucide-react'
+import { User, Settings, Shield, Bell, Key, LogOut, ChevronRight, Loader2, Camera, X, Save, Trash2, MessageSquare, Award, Flame, Utensils as UtensilsIcon, Share2, Gift } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
 import type { UserMemory } from '@/types'
+
+import Cookies from 'js-cookie'
 
 export default function ProfilePage() {
   const [userEmail, setUserEmail] = useState<string>('')
@@ -35,15 +37,28 @@ export default function ProfilePage() {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
-      setUserEmail(user.email || '')
+      let activeUserId = user.id
+      let displayEmail = user.email || ''
+
+      const impersonateId = Cookies.get('impersonate_user_id')
+      const impersonateEmail = Cookies.get('impersonate_user_email')
+      if (impersonateId) {
+        activeUserId = impersonateId
+        displayEmail = impersonateEmail || impersonateId
+      }
+
+      setUserEmail(displayEmail)
       
       const { data: memData } = await supabase
         .from('user_memory')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', activeUserId)
         .single()
         
-      if (memData?.is_admin === true) {
+      if (memData?.is_admin === true && !impersonateId) {
+        setIsAdmin(true)
+      } else if (impersonateId) {
+        // If impersonating, you are inherently an admin viewing this
         setIsAdmin(true)
       }
         
@@ -241,7 +256,22 @@ export default function ProfilePage() {
   }
 
   if (loading) {
-    return <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-gold" /></div>
+    return (
+      <div className="relative min-h-screen px-4 pt-8">
+        <div className="max-w-screen-xl mx-auto space-y-8 animate-pulse">
+          <div className="h-10 w-48 bg-white/5 rounded-lg mx-auto lg:mx-0"></div>
+          <div className="grid lg:grid-cols-12 gap-8">
+            <div className="lg:col-span-5">
+              <div className="h-96 bg-white/5 rounded-[2.5rem]"></div>
+            </div>
+            <div className="lg:col-span-7 space-y-6">
+              <div className="h-64 bg-white/5 rounded-[2rem]"></div>
+              <div className="h-64 bg-white/5 rounded-[2rem]"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   const sections = [
@@ -249,16 +279,18 @@ export default function ProfilePage() {
       title: 'Account Settings',
       items: [
         { icon: User, label: 'Personal Information', value: displayName || 'Set Name', action: () => setActiveModal('personal') },
-        { icon: User, label: 'Dietary Restrictions', value: dietaryLifestyles.length > 0 ? `${dietaryLifestyles.length} selected` : 'None', action: () => setActiveModal('dietary') },
+        { icon: UtensilsIcon, label: 'Dietary Restrictions', value: dietaryLifestyles.length > 0 ? `${dietaryLifestyles.length} selected` : 'None', action: () => setActiveModal('dietary') },
         { icon: Shield, label: 'Change Password', action: () => setActiveModal('password') },
         { icon: Bell, label: 'Notifications', value: notifications.push ? 'On' : 'Off', action: () => setActiveModal('notifications') },
       ]
     },
     {
-      title: 'App Preferences',
+      title: 'App Preferences & Rewards',
       items: [
-        { icon: Settings, label: 'Theme & Appearance', value: 'Dark Gold', action: () => toast.success('Dark Gold theme is locked.') },
+        { icon: Gift, label: 'Refer a Friend & Earn VIP', value: '20% OFF', action: () => setActiveModal('referral') },
+        { icon: Settings, label: 'Theme & Appearance', value: 'Forge Ember 🔥', action: () => toast.success('Forge Ember theme is locked in. 🔥') },
         { icon: Key, label: 'AI Memory Settings', value: `${memory?.soft_memory?.notes?.length || 0} notes`, action: () => setActiveModal('memory') },
+        { icon: MessageSquare, label: 'Submit Feedback', action: () => window.location.href = '/feedback' },
       ]
     }
   ]
@@ -274,119 +306,135 @@ export default function ProfilePage() {
 
   return (
     <div className="relative min-h-screen">
-      {/* Ambient Background */}
+      {/* Ambient Premium Orbs */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        <div className="absolute top-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-[radial-gradient(circle,rgba(212,175,106,0.15)_0%,transparent_70%)] rounded-full transform-gpu" />
-        <div className="absolute bottom-[20%] left-[-20%] w-[40vw] h-[40vw] bg-[radial-gradient(circle,rgba(212,175,106,0.15)_0%,transparent_70%)] rounded-full transform-gpu" />
+        <div className="absolute top-[-10%] right-[-5%] w-[800px] h-[600px] bg-red-600/5 rounded-full blur-[120px] mix-blend-screen" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[400px] bg-gold/5 rounded-full blur-[100px] mix-blend-screen" />
       </div>
 
-      <div className="relative z-10 max-w-3xl mx-auto space-y-8 pb-20 px-4 sm:px-6 lg:px-8 pt-8">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-          <h1 className="text-3xl md:text-4xl font-heading font-bold text-foreground tracking-tight">Profile</h1>
-          <p className="text-muted-foreground mt-1 text-sm md:text-base">Manage your account and preferences.</p>
+      <div className="relative z-10 max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-32">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-10 text-center lg:text-left">
+          <h1 className="text-4xl md:text-5xl font-heading font-black text-white tracking-tight uppercase mb-2">Profile</h1>
+          <p className="text-muted-foreground font-medium">Manage your Forge identity and settings.</p>
         </motion.div>
 
-        {/* Premium User Card */}
-        <motion.div 
-          className="relative p-8 rounded-[2rem] flex flex-col sm:flex-row items-center gap-8 overflow-hidden group/card shadow-2xl border border-gold/30 bg-black/40 backdrop-blur-xl"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          {/* Animated Glow Background */}
-          <div className="absolute inset-0 bg-gradient-to-tr from-gold/5 via-transparent to-transparent opacity-50 group-hover/card:opacity-100 transition-opacity duration-700 pointer-events-none" />
-          <div className="absolute -top-32 -right-32 w-64 h-64 bg-gold/10 blur-[100px] rounded-full pointer-events-none" />
+        <div className="grid lg:grid-cols-12 gap-8 lg:gap-12">
           
-          <div className="relative group cursor-pointer" onClick={() => setActiveModal('photo')}>
-            {/* Spinning Aura */}
-            <div className="absolute -inset-1 bg-gradient-to-r from-gold via-yellow-200 to-gold rounded-full opacity-20 group-hover:opacity-50 blur-md transition-opacity duration-500 animate-[spin_4s_linear_infinite]" />
-            
-            <div className="w-28 h-28 rounded-full bg-black border-2 border-gold/50 flex items-center justify-center shrink-0 relative z-10 overflow-hidden shadow-[0_0_30px_rgba(212,175,106,0.2)]">
-              {photoUrl ? (
-                 <img src={photoUrl} alt="Profile" className="w-full h-full object-cover" />
-              ) : (
-                 <User className="w-12 h-12 text-gold" />
-              )}
-            </div>
-            
-            <div className="absolute inset-0 bg-black/60 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity z-20 backdrop-blur-sm">
-               <Camera className="w-8 h-8 text-white" />
-            </div>
-            
-            {/* VIP Badge */}
-            <div className="absolute -bottom-2 -right-2 bg-gradient-to-r from-gold to-yellow-500 text-black text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border-2 border-black z-30 shadow-lg transform-gpu -rotate-12">
-              VIP
-            </div>
-          </div>
-          
-          <div className="text-center sm:text-left relative z-10">
-            <h2 className="text-3xl font-heading font-black text-white tracking-tight drop-shadow-md">{displayName || 'Athlete'}</h2>
-            <p className="text-gold/80 font-medium mt-1 text-sm tracking-wide">{userEmail}</p>
-            <div className="mt-4 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gold/10 border border-gold/30 shadow-[0_0_15px_rgba(212,175,106,0.1)]">
-              <div className="w-2 h-2 rounded-full bg-gold animate-pulse shadow-[0_0_8px_#D4AF37]" />
-              <span className="text-xs font-bold text-gold uppercase tracking-widest">Forge Pro Member</span>
-            </div>
-          </div>
-        </motion.div>
+          {/* ── CỘT TRÁI (Sticky User Card - 5/12) ── */}
+          <div className="lg:col-span-5">
+            <div className="sticky top-8 space-y-6">
+              <motion.div 
+                className="relative p-8 rounded-[3rem] flex flex-col items-center text-center overflow-hidden group/card shadow-2xl border border-white/10 glass-card"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                {/* Animated Glow Background */}
+                <div className="absolute inset-0 bg-gradient-to-tr from-gold/10 via-transparent to-transparent opacity-50 group-hover/card:opacity-100 transition-opacity duration-700 pointer-events-none" />
+                <div className="absolute -top-32 -right-32 w-64 h-64 bg-gold/10 blur-[100px] rounded-full pointer-events-none" />
+                
+                <div className="relative group cursor-pointer mb-6" onClick={() => setActiveModal('photo')}>
+                  {/* Spinning Aura */}
+                  <div className="absolute -inset-1.5 bg-gradient-to-r from-gold via-orange-500 to-gold rounded-full opacity-30 group-hover:opacity-70 blur-md transition-opacity duration-500 animate-[spin_4s_linear_infinite]" />
+                  
+                  <div className="w-40 h-40 rounded-full bg-black border-2 border-gold/50 flex items-center justify-center shrink-0 relative z-10 overflow-hidden shadow-[0_0_40px_rgba(212,175,106,0.3)]">
+                    {photoUrl ? (
+                       <img src={photoUrl} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                       <User className="w-20 h-20 text-gold/50" />
+                    )}
+                  </div>
+                  
+                  <div className="absolute inset-0 bg-black/60 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity z-20 backdrop-blur-sm">
+                     <Camera className="w-10 h-10 text-white" />
+                  </div>
+                  
+                  {/* VIP Badge */}
+                  <div className="absolute bottom-2 right-0 bg-gradient-to-r from-gold to-orange-500 text-black text-[12px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full border-2 border-black z-30 shadow-[0_0_15px_rgba(212,175,106,0.6)] transform-gpu rotate-[-10deg]">
+                    VIP
+                  </div>
+                </div>
+                
+                <div className="relative z-10 w-full">
+                  <h2 className="text-3xl font-heading font-black text-white tracking-tight uppercase mb-1">{displayName || 'Athlete'}</h2>
+                  <p className="text-muted-foreground font-medium text-sm tracking-wide mb-6">{userEmail}</p>
+                  
+                  <div className="grid grid-cols-2 gap-3 w-full">
+                    <div className="bg-black/40 border border-white/5 rounded-2xl p-4 flex flex-col items-center">
+                      <span className="text-2xl font-black text-white">{hardMemory.weight || '--'}</span>
+                      <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mt-1">Weight (kg)</span>
+                    </div>
+                    <div className="bg-black/40 border border-white/5 rounded-2xl p-4 flex flex-col items-center">
+                      <span className="text-2xl font-black text-white">{hardMemory.height || '--'}</span>
+                      <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mt-1">Height (cm)</span>
+                    </div>
+                  </div>
 
-        {/* Settings Sections */}
-        <div className="space-y-6">
-          {sections.map((section, i) => (
-            <motion.div 
-              key={i}
-              className="space-y-3"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 + (i * 0.1) }}
-            >
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest pl-4">{section.title}</h3>
-              <div className="glass-card rounded-[2rem] overflow-hidden">
-                {section.items.map((item, j) => (
-                  <button 
-                    key={j} 
-                    onClick={item.action}
-                    className={`w-full flex items-center justify-between p-5 hover:bg-white/5 transition-colors group ${
-                      j !== section.items.length - 1 ? 'border-b border-white/5' : ''
-                    }`}
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-xl bg-black/20 border border-white/5 flex items-center justify-center group-hover:border-gold/30 group-hover:text-gold transition-colors">
-                        <item.icon className="w-5 h-5 text-muted-foreground group-hover:text-gold transition-colors" />
-                      </div>
-                      <span className="font-medium text-foreground">{item.label}</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      {item.value && <span className="text-sm text-muted-foreground">{item.value}</span>}
-                      <ChevronRight className="w-5 h-5 text-muted-foreground/30 group-hover:text-gold transition-colors" />
-                    </div>
-                  </button>
-                ))}
+                  <div className="mt-6 inline-flex items-center gap-2 px-5 py-2 rounded-full bg-gold/10 border border-gold/30 shadow-[0_0_15px_rgba(212,175,106,0.15)]">
+                    <div className="w-2.5 h-2.5 rounded-full bg-gold animate-pulse shadow-[0_0_8px_rgba(212,175,106,0.8)]" />
+                    <span className="text-xs font-black text-gold uppercase tracking-widest">Forge Pro Member</span>
+                  </div>
+                </div>
+              </motion.div>
+
+              <div className="glass-card p-6 rounded-[2rem] border-white/10 shadow-2xl flex flex-col sm:flex-row gap-3">
+                <button 
+                  onClick={handleSignOut}
+                  className="flex-1 p-4 rounded-xl flex items-center justify-center gap-2 text-white font-bold bg-white/5 hover:bg-white/10 transition-colors border border-white/5"
+                >
+                  <LogOut className="w-4 h-4 text-muted-foreground" /> Sign Out
+                </button>
+                <button 
+                  onClick={() => setActiveModal('delete')}
+                  className="flex-1 p-4 rounded-xl flex items-center justify-center gap-2 text-red-400 font-bold bg-red-500/10 hover:bg-red-500/20 transition-colors border border-red-500/20"
+                >
+                  <Trash2 className="w-4 h-4" /> Delete
+                </button>
               </div>
-            </motion.div>
-          ))}
-        </div>
+            </div>
+          </div>
 
-        {/* Logout & Delete */}
-        <motion.div 
-          className="space-y-4"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-        >
-          <button 
-            onClick={handleSignOut}
-            className="w-full glass-card p-5 rounded-[2rem] flex items-center justify-center gap-2 text-foreground font-semibold hover:bg-white/5 transition-colors"
-          >
-            <LogOut className="w-5 h-5" /> Sign Out
-          </button>
-          
-          <button 
-            onClick={() => setActiveModal('delete')}
-            className="w-full bg-transparent p-5 rounded-[2rem] flex items-center justify-center gap-2 text-destructive/70 text-sm font-semibold hover:bg-destructive/10 hover:text-destructive transition-colors border border-transparent hover:border-destructive/20"
-          >
-            <Trash2 className="w-4 h-4" /> Delete Account
-          </button>
-        </motion.div>
+          {/* ── CỘT PHẢI (Settings Sections - 7/12) ── */}
+          <div className="lg:col-span-7 space-y-8">
+            {sections.map((section, i) => (
+              <motion.div 
+                key={i}
+                className="space-y-4"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 + (i * 0.1) }}
+              >
+                <h3 className="text-xs font-black text-muted-foreground uppercase tracking-widest pl-2 flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-gold/50" />
+                  {section.title}
+                </h3>
+                <div className="glass-card rounded-[2rem] overflow-hidden border-white/10 shadow-xl">
+                  {section.items.map((item, j) => (
+                    <button 
+                      key={j} 
+                      onClick={item.action}
+                      className={`w-full flex items-center justify-between p-6 hover:bg-white/5 transition-all group ${
+                        j !== section.items.length - 1 ? 'border-b border-white/5' : ''
+                      }`}
+                    >
+                      <div className="flex items-center gap-5">
+                        <div className="w-12 h-12 rounded-2xl bg-black/40 border border-white/10 flex items-center justify-center group-hover:border-gold/30 group-hover:bg-gold/10 transition-all">
+                          <item.icon className="w-5 h-5 text-muted-foreground group-hover:text-gold transition-colors" />
+                        </div>
+                        <span className="font-bold text-white text-base">{item.label}</span>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        {item.value && <span className="text-sm font-medium text-muted-foreground group-hover:text-white transition-colors">{item.value}</span>}
+                        <ChevronRight className="w-5 h-5 text-muted-foreground/30 group-hover:text-gold transition-colors" />
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+        </div>
       </div>
 
       {/* Modals overlay */}
@@ -394,37 +442,42 @@ export default function ProfilePage() {
         {activeModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div 
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              className="absolute inset-0 bg-[#0a0a0a]/80 backdrop-blur-md"
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setActiveModal(null)}
             />
             
             <motion.div 
-              className="relative w-full max-w-md glass-card rounded-[2rem] p-6 border border-white/10 shadow-2xl overflow-hidden"
+              className="relative w-full max-w-md glass-card rounded-[2.5rem] p-8 border-white/20 shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden"
               initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
             >
+              <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-gold/50 to-transparent" />
+              
               <button 
                 onClick={() => setActiveModal(null)}
-                className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 transition-colors"
+                className="absolute top-5 right-5 w-10 h-10 flex items-center justify-center rounded-2xl bg-white/5 hover:bg-white/10 transition-colors border border-white/10"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5 text-white" />
               </button>
 
               {/* Password Modal */}
               {activeModal === 'password' && (
-                <form onSubmit={updatePassword} className="space-y-6 pt-4">
-                  <div>
-                    <h3 className="text-xl font-bold mb-2">Change Password</h3>
-                    <p className="text-sm text-muted-foreground">Enter a new secure password for your account.</p>
+                <form onSubmit={updatePassword} className="space-y-6 pt-2">
+                  <div className="mb-8">
+                    <div className="w-12 h-12 rounded-2xl bg-gold/10 border border-gold/20 flex items-center justify-center mb-4 glow-gold">
+                      <Shield className="w-6 h-6 text-gold" />
+                    </div>
+                    <h3 className="text-2xl font-heading font-black text-white uppercase tracking-tight mb-2">Change Password</h3>
+                    <p className="text-sm font-medium text-muted-foreground">Enter a new secure password for your account.</p>
                   </div>
                   <input
                     type="password"
                     required minLength={6}
                     value={password} onChange={(e) => setPassword(e.target.value)}
                     placeholder="New Password"
-                    className="w-full bg-black/20 border border-white/5 rounded-2xl p-4 text-foreground focus:outline-none focus:ring-1 focus:ring-gold"
+                    className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-white font-medium focus:outline-none focus:border-gold/50 focus:shadow-[0_0_20px_rgba(212,175,106,0.15)] transition-all"
                   />
-                  <button type="submit" disabled={isSubmitting} className="w-full py-4 bg-gold text-gold-foreground rounded-xl font-bold hover:bg-gold/90 transition-colors flex justify-center glow-gold">
+                  <button type="submit" disabled={isSubmitting} className="w-full py-4 bg-gradient-fire text-white rounded-2xl font-black uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all flex justify-center glow-red border-t border-white/20">
                     {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Update Password'}
                   </button>
                 </form>
@@ -432,17 +485,20 @@ export default function ProfilePage() {
 
               {/* AI Memory Modal */}
               {activeModal === 'memory' && (
-                <form onSubmit={updateMemory} className="space-y-6 pt-4">
-                  <div>
-                    <h3 className="text-xl font-bold mb-2">AI Memory Notes</h3>
-                    <p className="text-sm text-muted-foreground">Edit what the AI Coach remembers about you. One note per line.</p>
+                <form onSubmit={updateMemory} className="space-y-6 pt-2">
+                  <div className="mb-6">
+                    <div className="w-12 h-12 rounded-2xl bg-gold/10 border border-gold/20 flex items-center justify-center mb-4 glow-gold">
+                      <Key className="w-6 h-6 text-gold" />
+                    </div>
+                    <h3 className="text-2xl font-heading font-black text-white uppercase tracking-tight mb-2">AI Memory Notes</h3>
+                    <p className="text-sm font-medium text-muted-foreground">Edit what the AI Coach remembers about you. One note per line.</p>
                   </div>
                   <textarea
                     value={memoryNotes} onChange={(e) => setMemoryNotes(e.target.value)}
                     placeholder="e.g. I hate running on treadmills."
-                    className="w-full bg-black/20 border border-white/5 rounded-2xl p-4 text-foreground focus:outline-none focus:ring-1 focus:ring-gold min-h-[150px] text-sm leading-relaxed"
+                    className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-white font-medium focus:outline-none focus:border-gold/50 focus:shadow-[0_0_20px_rgba(212,175,106,0.15)] transition-all min-h-[160px] text-sm leading-relaxed resize-none"
                   />
-                  <button type="submit" disabled={isSubmitting} className="w-full py-4 bg-gold text-gold-foreground rounded-xl font-bold hover:bg-gold/90 transition-colors flex justify-center glow-gold">
+                  <button type="submit" disabled={isSubmitting} className="w-full py-4 bg-gradient-fire text-white rounded-2xl font-black uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all flex justify-center glow-red border-t border-white/20">
                     {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Save Memory'}
                   </button>
                 </form>
@@ -450,36 +506,39 @@ export default function ProfilePage() {
 
               {/* Personal Info Modal */}
               {activeModal === 'personal' && (
-                <form onSubmit={updatePersonalInfo} className="space-y-6 pt-4">
-                  <div>
-                    <h3 className="text-xl font-bold mb-2">Personal Info</h3>
-                    <p className="text-sm text-muted-foreground">Update your core physical metrics.</p>
+                <form onSubmit={updatePersonalInfo} className="space-y-6 pt-2">
+                  <div className="mb-6">
+                    <div className="w-12 h-12 rounded-2xl bg-gold/10 border border-gold/20 flex items-center justify-center mb-4 glow-gold">
+                      <User className="w-6 h-6 text-gold" />
+                    </div>
+                    <h3 className="text-2xl font-heading font-black text-white uppercase tracking-tight mb-2">Personal Info</h3>
+                    <p className="text-sm font-medium text-muted-foreground">Update your core physical metrics.</p>
                   </div>
                   <div className="grid grid-cols-2 gap-4 mb-4">
                     <div className="col-span-2">
-                      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-2 block">Display Name</label>
+                      <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 block">Display Name</label>
                       <input
                         type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)}
                         placeholder="Public Username"
-                        className="w-full bg-black/20 border border-white/5 rounded-2xl p-4 text-foreground focus:outline-none focus:ring-1 focus:ring-gold"
+                        className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-white font-medium focus:outline-none focus:border-gold/50 transition-all"
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-2 block">Height (cm)</label>
+                      <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 block">Height (cm)</label>
                       <input
                         type="number" value={hardMemory.height} onChange={(e) => setHardMemory({...hardMemory, height: e.target.value})}
-                        className="w-full bg-black/20 border border-white/5 rounded-2xl p-4 text-foreground focus:outline-none focus:ring-1 focus:ring-gold"
+                        className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-white font-bold focus:outline-none focus:border-gold/50 transition-all text-center"
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-2 block">Weight (kg)</label>
+                      <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 block">Weight (kg)</label>
                       <input
                         type="number" value={hardMemory.weight} onChange={(e) => setHardMemory({...hardMemory, weight: e.target.value})}
-                        className="w-full bg-black/20 border border-white/5 rounded-2xl p-4 text-foreground focus:outline-none focus:ring-1 focus:ring-gold"
+                        className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-white font-bold focus:outline-none focus:border-gold/50 transition-all text-center"
                       />
                     </div>
                   </div>
-                  <button type="submit" disabled={isSubmitting} className="w-full py-4 bg-gold text-gold-foreground rounded-xl font-bold hover:bg-gold/90 transition-colors flex justify-center glow-gold">
+                  <button type="submit" disabled={isSubmitting} className="w-full py-4 bg-gradient-fire text-white rounded-2xl font-black uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all flex justify-center glow-red border-t border-white/20 mt-4">
                     {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Update Details'}
                   </button>
                 </form>
@@ -487,14 +546,17 @@ export default function ProfilePage() {
 
               {/* Dietary Modal */}
               {activeModal === 'dietary' && (
-                <form onSubmit={updateDietary} className="space-y-6 pt-4">
-                  <div>
-                    <h3 className="text-xl font-bold mb-2">Dietary Restrictions</h3>
-                    <p className="text-sm text-muted-foreground">This helps the AI tailor your recipes.</p>
+                <form onSubmit={updateDietary} className="space-y-6 pt-2">
+                  <div className="mb-6">
+                    <div className="w-12 h-12 rounded-2xl bg-gold/10 border border-gold/20 flex items-center justify-center mb-4 glow-gold">
+                      <Flame className="w-6 h-6 text-gold" />
+                    </div>
+                    <h3 className="text-2xl font-heading font-black text-white uppercase tracking-tight mb-2">Dietary Setup</h3>
+                    <p className="text-sm font-medium text-muted-foreground">Tailor the AI's recipe recommendations.</p>
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-2 block">Lifestyles</label>
-                    <div className="flex flex-wrap gap-2 mb-4">
+                    <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3 block">Lifestyles</label>
+                    <div className="flex flex-wrap gap-2.5 mb-6">
                       {['Vegan', 'Vegetarian', 'Keto', 'Paleo', 'Halal', 'Pescatarian'].map(diet => (
                         <button
                           key={diet}
@@ -506,8 +568,8 @@ export default function ProfilePage() {
                               setDietaryLifestyles([...dietaryLifestyles, diet])
                             }
                           }}
-                          className={`px-3 py-1.5 rounded-full text-sm font-semibold transition-colors ${
-                            dietaryLifestyles.includes(diet) ? 'bg-gold text-black glow-gold' : 'bg-white/5 text-muted-foreground hover:bg-white/10'
+                          className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all border ${
+                            dietaryLifestyles.includes(diet) ? 'bg-gold/20 border-gold text-gold shadow-[0_0_15px_rgba(212,175,106,0.3)]' : 'bg-black/40 border-white/10 text-muted-foreground hover:bg-white/10 hover:border-white/20 hover:text-white'
                           }`}
                         >
                           {diet}
@@ -516,14 +578,14 @@ export default function ProfilePage() {
                     </div>
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-2 block">Allergies</label>
+                    <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3 block">Allergies</label>
                     <input
                       type="text" value={allergiesText} onChange={(e) => setAllergiesText(e.target.value)}
-                      placeholder="e.g. Peanuts, Shellfish, Dairy (comma separated)"
-                      className="w-full bg-black/20 border border-white/5 rounded-2xl p-4 text-foreground focus:outline-none focus:ring-1 focus:ring-gold"
+                      placeholder="e.g. Peanuts, Shellfish, Dairy"
+                      className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-white font-medium focus:outline-none focus:border-gold/50 transition-all"
                     />
                   </div>
-                  <button type="submit" disabled={isSubmitting} className="w-full py-4 bg-gold text-gold-foreground rounded-xl font-bold hover:bg-gold/90 transition-colors flex justify-center glow-gold">
+                  <button type="submit" disabled={isSubmitting} className="w-full py-4 bg-gradient-fire text-white rounded-2xl font-black uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all flex justify-center glow-red border-t border-white/20 mt-4">
                     {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Save Dietary Info'}
                   </button>
                 </form>
@@ -531,26 +593,29 @@ export default function ProfilePage() {
 
               {/* Notifications Modal */}
               {activeModal === 'notifications' && (
-                <div className="space-y-6 pt-4">
-                  <div>
-                    <h3 className="text-xl font-bold mb-2">Notifications</h3>
-                    <p className="text-sm text-muted-foreground">Manage your alerts and reminders.</p>
+                <div className="space-y-6 pt-2">
+                  <div className="mb-6">
+                    <div className="w-12 h-12 rounded-2xl bg-gold/10 border border-gold/20 flex items-center justify-center mb-4 glow-gold">
+                      <Bell className="w-6 h-6 text-gold" />
+                    </div>
+                    <h3 className="text-2xl font-heading font-black text-white uppercase tracking-tight mb-2">Notifications</h3>
+                    <p className="text-sm font-medium text-muted-foreground">Manage your alerts and reminders.</p>
                   </div>
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl">
+                    <div className="flex items-center justify-between p-5 bg-black/40 border border-white/10 rounded-2xl">
                       <div>
-                        <p className="font-semibold text-foreground">Push Notifications</p>
-                        <p className="text-xs text-muted-foreground">Daily reminders & coach alerts</p>
+                        <p className="font-bold text-white mb-0.5">Push Notifications</p>
+                        <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">Daily reminders & alerts</p>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" checked={notifications.push} onChange={(e) => setNotifications({...notifications, push: e.target.checked})} className="sr-only peer" />
                         <div className="w-14 h-7 bg-white/10 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-gold transition-colors"></div>
                       </label>
                     </div>
-                    <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl">
+                    <div className="flex items-center justify-between p-5 bg-black/40 border border-white/10 rounded-2xl">
                       <div>
-                        <p className="font-semibold text-foreground">Email Updates</p>
-                        <p className="text-xs text-muted-foreground">Weekly progress reports</p>
+                        <p className="font-bold text-white mb-0.5">Email Updates</p>
+                        <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">Weekly progress reports</p>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" checked={notifications.email} onChange={(e) => setNotifications({...notifications, email: e.target.checked})} className="sr-only peer" />
@@ -558,7 +623,7 @@ export default function ProfilePage() {
                       </label>
                     </div>
                   </div>
-                  <button onClick={() => {toast.success('Preferences saved'); setActiveModal(null)}} className="w-full py-4 bg-gold text-gold-foreground rounded-xl font-bold hover:bg-gold/90 transition-colors flex justify-center glow-gold">
+                  <button onClick={() => {toast.success('Preferences saved'); setActiveModal(null)}} className="w-full py-4 mt-6 bg-gradient-fire text-white rounded-2xl font-black uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all flex justify-center glow-red border-t border-white/20">
                     Save Preferences
                   </button>
                 </div>
@@ -566,23 +631,23 @@ export default function ProfilePage() {
 
               {/* Photo Upload Modal */}
               {activeModal === 'photo' && (
-                <div className="space-y-6 pt-4 text-center">
-                  <div>
-                    <h3 className="text-xl font-bold mb-2">Profile Photo</h3>
-                    <p className="text-sm text-muted-foreground mb-4">Choose an image (max 2MB)</p>
+                <div className="space-y-6 pt-2 text-center">
+                  <div className="mb-6">
+                    <h3 className="text-2xl font-heading font-black text-white uppercase tracking-tight mb-2">Profile Photo</h3>
+                    <p className="text-sm font-medium text-muted-foreground mb-4">Choose an image (max 2MB)</p>
                   </div>
                   
-                  <div className="relative w-32 h-32 mx-auto mb-6">
+                  <div className="relative w-40 h-40 mx-auto mb-8">
                     {photoUrl ? (
-                      <img src={photoUrl} alt="Avatar" className="w-full h-full rounded-full object-cover border-2 border-gold/30" />
+                      <img src={photoUrl} alt="Avatar" className="w-full h-full rounded-full object-cover border-4 border-gold/50 shadow-[0_0_30px_rgba(212,175,106,0.3)]" />
                     ) : (
-                      <div className="w-full h-full rounded-full bg-white/5 flex items-center justify-center border-2 border-white/10">
-                        <User className="w-12 h-12 text-muted-foreground" />
+                      <div className="w-full h-full rounded-full bg-black/40 flex items-center justify-center border-4 border-white/10">
+                        <User className="w-16 h-16 text-muted-foreground" />
                       </div>
                     )}
                     {uploadingImage && (
-                      <div className="absolute inset-0 bg-black/60 rounded-full flex items-center justify-center">
-                        <Loader2 className="w-8 h-8 text-gold animate-spin" />
+                      <div className="absolute inset-0 bg-black/60 rounded-full flex items-center justify-center backdrop-blur-sm">
+                        <Loader2 className="w-10 h-10 text-gold animate-spin" />
                       </div>
                     )}
                   </div>
@@ -595,7 +660,7 @@ export default function ProfilePage() {
                       disabled={uploadingImage}
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed" 
                     />
-                    <button className="w-full py-4 bg-gold text-gold-foreground rounded-xl font-bold hover:bg-gold/90 transition-colors flex items-center justify-center gap-2 glow-gold">
+                    <button className="w-full py-4 bg-gradient-fire text-white rounded-2xl font-black uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 glow-red border-t border-white/20">
                       <Camera className="w-5 h-5" />
                       {uploadingImage ? 'Uploading...' : 'Upload New Photo'}
                     </button>
@@ -605,18 +670,49 @@ export default function ProfilePage() {
 
               {/* Delete Account Modal */}
               {activeModal === 'delete' && (
-                <div className="space-y-6 pt-4 text-center">
-                  <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
-                    <Trash2 className="w-8 h-8 text-destructive" />
+                <div className="space-y-6 pt-2 text-center">
+                  <div className="w-20 h-20 rounded-3xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(239,68,68,0.2)]">
+                    <Trash2 className="w-10 h-10 text-red-500" />
                   </div>
-                  <div>
-                    <h3 className="text-xl font-bold mb-2 text-foreground">Delete Account?</h3>
-                    <p className="text-sm text-muted-foreground">This action is permanent and will delete all your workout logs, memories, and progress data.</p>
+                  <div className="mb-8">
+                    <h3 className="text-2xl font-heading font-black text-white uppercase tracking-tight mb-3">Delete Account?</h3>
+                    <p className="text-sm font-medium text-muted-foreground leading-relaxed">This action is permanent. All your workout logs, memories, and progress data will be incinerated.</p>
                   </div>
-                  <div className="flex gap-4 pt-4">
-                    <button onClick={() => setActiveModal(null)} className="flex-1 py-4 bg-white/5 text-foreground rounded-xl font-bold hover:bg-white/10 transition-colors">Cancel</button>
-                    <button onClick={handleDeleteAccount} className="flex-1 py-4 bg-destructive text-destructive-foreground rounded-xl font-bold hover:bg-destructive/90 transition-colors">Delete</button>
+                  <div className="flex gap-4">
+                    <button onClick={() => setActiveModal(null)} className="flex-1 py-4 bg-white/5 border border-white/10 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-white/10 transition-colors">Cancel</button>
+                    <button onClick={handleDeleteAccount} className="flex-1 py-4 bg-red-600 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-red-700 transition-colors border-t border-red-400 glow-red">Delete</button>
                   </div>
+                </div>
+              )}
+
+              {/* Referral & Rewards Modal */}
+              {activeModal === 'referral' && (
+                <div className="space-y-6 pt-2 text-center">
+                  <div className="w-20 h-20 rounded-3xl bg-gold/10 border border-gold/20 flex items-center justify-center mx-auto mb-4 glow-gold">
+                    <Gift className="w-10 h-10 text-gold" />
+                  </div>
+                  <div className="mb-6">
+                    <h3 className="text-2xl font-heading font-black text-white uppercase tracking-tight mb-2">Giới Thiệu Bạn Bè</h3>
+                    <p className="text-xs font-medium text-muted-foreground leading-relaxed">
+                      Mời đồng đội tham gia Forge AI. Bạn bè nhận ngay <strong className="text-gold">20% OFF gói Pro</strong>, bạn nhận 1 tháng VIP Pro miễn phí!
+                    </p>
+                  </div>
+
+                  <div className="p-4 bg-black/40 border border-white/10 rounded-2xl space-y-2">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block">Mã Giới Thiệu Của Bạn</span>
+                    <div className="text-xl font-mono font-black text-gold">FORGE-{displayName.toUpperCase() || 'ATHLETE'}</div>
+                  </div>
+
+                  <button 
+                    onClick={() => {
+                      const link = `${window.location.origin}/register?ref=FORGE-${displayName.toUpperCase() || 'ATHLETE'}`
+                      navigator.clipboard.writeText(link)
+                      toast.success('Đã copy link giới thiệu bạn bè!')
+                    }}
+                    className="w-full py-4 bg-gradient-gold text-black rounded-2xl font-black uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(212,175,106,0.3)]"
+                  >
+                    <Share2 className="w-5 h-5" /> Copy Link Giới Thiệu
+                  </button>
                 </div>
               )}
 

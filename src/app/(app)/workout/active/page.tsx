@@ -92,7 +92,8 @@ export default function ActiveWorkoutPage() {
       }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
     }
-  }, [loading, workoutDayName, exercises, currentExerciseIdx, currentSetIdx, sessionLogs, startTime, isResting, timeLeft, restDuration, workoutComplete])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, workoutDayName, exercises, currentExerciseIdx, currentSetIdx, sessionLogs, workoutComplete])
 
   async function loadWorkoutData() {
     const searchParams = new URLSearchParams(window.location.search)
@@ -415,7 +416,7 @@ export default function ActiveWorkoutPage() {
         <motion.div 
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          className="glass-card p-10 rounded-[3rem] text-center max-w-md w-full relative z-10 border-gold/20 shadow-2xl"
+          className="iron-card p-10 rounded-[3rem] text-center max-w-md w-full relative z-10 border-gold/20 shadow-2xl"
         >
           <div className="w-24 h-24 bg-gold/10 rounded-full flex items-center justify-center mx-auto mb-6">
             <Trophy className="w-12 h-12 text-gold animate-pulse-glow" />
@@ -483,7 +484,7 @@ export default function ActiveWorkoutPage() {
       
       {/* Header */}
       <div className="flex items-center justify-between mb-8 relative z-10">
-        <button onClick={() => setShowCancelConfirm(true)} className="w-10 h-10 flex items-center justify-center glass-card rounded-full hover:bg-red-500/20 hover:text-red-400 transition-colors">
+        <button onClick={() => setShowCancelConfirm(true)} className="w-10 h-10 flex items-center justify-center iron-card rounded-full hover:bg-red-500/20 hover:text-red-400 transition-colors">
           <X className="w-5 h-5" />
         </button>
         <div className="text-center">
@@ -552,7 +553,7 @@ export default function ActiveWorkoutPage() {
             exit={{ opacity: 0, x: -20 }}
             className="relative z-10"
           >
-            <div className="glass-card p-6 md:p-8 rounded-[2.5rem] mb-6 shadow-2xl">
+            <div className="iron-card p-6 md:p-8 rounded-[2.5rem] mb-6 shadow-2xl">
               <div className="inline-block px-4 py-1.5 bg-gold/10 text-gold text-xs font-bold uppercase tracking-widest rounded-full mb-6">
                 Set {currentSetIdx + 1} of {safeSets}
               </div>
@@ -658,7 +659,7 @@ export default function ActiveWorkoutPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="relative w-full max-w-sm glass-card rounded-[2rem] p-8 text-center border border-red-500/20 shadow-2xl"
+              className="relative w-full max-w-sm iron-card rounded-[2rem] p-8 text-center border border-red-500/20 shadow-2xl"
             >
               <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
                 <AlertTriangle className="w-8 h-8 text-red-500" />
@@ -698,7 +699,7 @@ export default function ActiveWorkoutPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
-              className="relative w-full max-w-md max-h-[85vh] overflow-y-auto glass-card rounded-[2rem] p-6 border border-white/10 shadow-2xl"
+              className="relative w-full max-w-md max-h-[85vh] overflow-y-auto iron-card rounded-[2rem] p-6 border border-white/10 shadow-2xl"
             >
               <button 
                 onClick={() => setShowInfoModal(false)}
@@ -756,7 +757,7 @@ export default function ActiveWorkoutPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
-              className="relative w-full max-w-sm max-h-[80vh] overflow-y-auto glass-card rounded-[2rem] p-6 border border-gold/20 shadow-2xl"
+              className="relative w-full max-w-sm max-h-[80vh] overflow-y-auto iron-card rounded-[2rem] p-6 border border-gold/20 shadow-2xl"
             >
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold font-heading flex items-center gap-2"><History className="w-5 h-5 text-gold"/> Weight History</h3>
@@ -807,7 +808,7 @@ export default function ActiveWorkoutPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
-              className="relative w-full max-w-sm max-h-[80vh] overflow-y-auto glass-card rounded-[2rem] p-6 border border-gold/20 shadow-2xl"
+              className="relative w-full max-w-sm max-h-[80vh] overflow-y-auto iron-card rounded-[2rem] p-6 border border-gold/20 shadow-2xl"
             >
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold font-heading flex items-center gap-2"><Repeat className="w-5 h-5 text-gold"/> Swap Exercise</h3>

@@ -21,6 +21,8 @@ import { callAIWithFallback, type AIMessage } from '@/lib/ai'
 import { buildSystemPrompt } from '@/lib/system-prompt'
 import { parseAITags, detectConversationMode, getActiveMood } from '@/lib/memory-engine'
 import { calculateNutritionGoals } from '@/lib/nutrition'
+import { checkRateLimit } from '@/lib/rate-limit'
+import DOMPurify from 'isomorphic-dompurify'
 import type {
   ChatApiResponse,
   DailyNutritionSummary,
@@ -60,10 +62,21 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // 1.6. Giao Thức Tận Thế: Rate Limiting
+    const isAllowed = await checkRateLimit('/api/chat', 10, 60)
+    if (!isAllowed) {
+      return NextResponse.json(
+        { error: 'Quá tải hệ thống. Bạn đang gửi quá nhiều yêu cầu. Hãy chậm lại.' },
+        { status: 429 }
+      )
+    }
+
     // 2. Parse request body
     const body = await request.json()
-    const userMessage: string = body.message?.trim()
+    const rawUserMessage: string = body.message?.trim()
+    const userMessage = rawUserMessage ? DOMPurify.sanitize(rawUserMessage) : ''
     const isGreeting: boolean = body.isGreeting === true
+    const personaId: string | undefined = body.personaId
     let sessionId: string | undefined = body.sessionId
 
     if (!userMessage && !isGreeting) {
@@ -124,6 +137,18 @@ export async function POST(request: NextRequest) {
     // 5. Load chat history (last 50 messages, oldest first)
     let history: AIMessage[] = []
     if (sessionId) {
+      // SECURITY FIX: Verify session belongs to user (prevents IDOR)
+      const { data: sessionData, error: sessionError } = await supabase
+        .from('chat_sessions')
+        .select('id')
+        .eq('id', sessionId)
+        .eq('user_id', user.id)
+        .single()
+        
+      if (sessionError || !sessionData) {
+        return NextResponse.json({ error: 'Session not found or unauthorized' }, { status: 403 })
+      }
+
       const { data: chatHistory } = await supabase
         .from('chat_messages')
         .select('role, content')
@@ -146,7 +171,15 @@ export async function POST(request: NextRequest) {
     const mode = detectConversationMode(userMessage ?? '', activeMood)
 
     // 7. Build system prompt
-    const systemPrompt = await buildSystemPrompt(memory, mode, todayNutrition)
+    let systemPrompt = await buildSystemPrompt(memory, mode, todayNutrition)
+
+    if (personaId) {
+      const { AI_PERSONAS } = await import('@/lib/personas')
+      const selectedPersona = AI_PERSONAS[personaId as keyof typeof AI_PERSONAS]
+      if (selectedPersona) {
+        systemPrompt += `\n\n--- ACTIVE COACH PERSONA: ${selectedPersona.name} ---\n${selectedPersona.systemPromptModifier}`
+      }
+    }
 
     // 8. For greeting requests, use a special greeting prompt
     let promptMessage = userMessage

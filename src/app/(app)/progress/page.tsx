@@ -86,7 +86,10 @@ export default function ProgressGalleryPage() {
     setAnalyticsLoading(true)
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    if (!user) {
+      setAnalyticsLoading(false)
+      return
+    }
 
     const { data: sessionLogs, error } = await supabase
       .from('workout_session_logs')
@@ -277,7 +280,7 @@ export default function ProgressGalleryPage() {
         {activeTab === 'gallery' && logs.length >= 2 && (
           <button 
             onClick={() => setCompareMode(!compareMode)}
-            className={`px-4 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-all ${compareMode ? 'bg-gold text-gold-foreground glow-gold' : 'glass-card hover:bg-white/10'}`}
+            className={`px-4 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-all ${compareMode ? 'bg-gold text-gold-foreground glow-gold' : 'iron-card hover:bg-white/10'}`}
           >
             <Maximize2 className="w-4 h-4" />
             {compareMode ? 'Gallery View' : 'Compare View'}
@@ -298,22 +301,22 @@ export default function ProgressGalleryPage() {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8 relative z-10">
           {/* Stats Grid */}
           <div className="grid grid-cols-3 gap-4">
-            <div className="glass-card p-4 rounded-2xl text-center border-white/5 bg-black/40 backdrop-blur-md">
+            <div className="iron-card p-4 rounded-2xl text-center border-white/5 bg-black/40 backdrop-blur-md">
               <p className="text-[10px] md:text-xs text-muted-foreground uppercase font-bold tracking-widest mb-1">Workouts</p>
               <p className="text-2xl md:text-3xl font-black text-gold">{stats.totalWorkouts}</p>
             </div>
-            <div className="glass-card p-4 rounded-2xl text-center border-white/5 bg-black/40 backdrop-blur-md">
+            <div className="iron-card p-4 rounded-2xl text-center border-white/5 bg-black/40 backdrop-blur-md">
               <p className="text-[10px] md:text-xs text-muted-foreground uppercase font-bold tracking-widest mb-1">Max Streak</p>
               <p className="text-2xl md:text-3xl font-black text-gold">{stats.maxStreak} <span className="text-xs font-normal text-muted-foreground lowercase hidden sm:inline">days</span></p>
             </div>
-            <div className="glass-card p-4 rounded-2xl text-center border-white/5 bg-black/40 backdrop-blur-md">
+            <div className="iron-card p-4 rounded-2xl text-center border-white/5 bg-black/40 backdrop-blur-md">
               <p className="text-[10px] md:text-xs text-muted-foreground uppercase font-bold tracking-widest mb-1">Total Volume</p>
               <p className="text-2xl md:text-3xl font-black text-gold">{(stats.totalVolume / 1000).toFixed(1)}<span className="text-xs font-normal text-muted-foreground lowercase hidden sm:inline">k kg</span></p>
             </div>
           </div>
 
           {/* Volume Chart */}
-          <div className="glass-card p-4 md:p-6 rounded-[2rem] border-white/5 bg-black/40 backdrop-blur-md">
+          <div className="iron-card p-4 md:p-6 rounded-[2rem] border-white/5 bg-black/40 backdrop-blur-md">
             <div className="flex items-center justify-between mb-6">
               <h3 className="font-bold text-lg flex items-center gap-2"><Activity className="w-5 h-5 text-gold"/> Volume History</h3>
             </div>
@@ -329,7 +332,7 @@ export default function ProgressGalleryPage() {
           </div>
 
           {/* Weight Chart */}
-          <div className="glass-card p-4 md:p-6 rounded-[2rem] border-white/5 bg-black/40 backdrop-blur-md">
+          <div className="iron-card p-4 md:p-6 rounded-[2rem] border-white/5 bg-black/40 backdrop-blur-md">
             <h3 className="font-bold mb-6 text-lg flex items-center gap-2"><Scale className="w-5 h-5 text-gold"/> Body Weight Tracker</h3>
             <div className="h-[250px] w-full">
               {logs.length === 0 ? (
@@ -344,7 +347,7 @@ export default function ProgressGalleryPage() {
         /* Gallery Tab Content */
         <>
           {logs.length === 0 ? (
-            <div className="glass-card flex flex-col items-center justify-center p-12 text-center rounded-[2.5rem] mt-10">
+            <div className="iron-card flex flex-col items-center justify-center p-12 text-center rounded-[2.5rem] mt-10">
               <div className="w-20 h-20 bg-gold/10 rounded-full flex items-center justify-center mb-6">
                 <Camera className="w-10 h-10 text-gold" />
               </div>
@@ -365,7 +368,7 @@ export default function ProgressGalleryPage() {
             >
               {/* Compare Controls */}
               <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="glass-card p-4 rounded-2xl border-white/5">
+                <div className="iron-card p-4 rounded-2xl border-white/5">
                   <label className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground mb-2 block">Before</label>
                   <select 
                     className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-sm focus:border-gold outline-none"
@@ -377,7 +380,7 @@ export default function ProgressGalleryPage() {
                     ))}
                   </select>
                 </div>
-                <div className="glass-card p-4 rounded-2xl border-white/5">
+                <div className="iron-card p-4 rounded-2xl border-white/5">
                   <label className="text-[10px] uppercase font-bold tracking-wider text-gold mb-2 block">After</label>
                   <select 
                     className="w-full bg-black/40 border border-gold/30 rounded-lg p-2 text-sm focus:border-gold outline-none"
@@ -424,7 +427,7 @@ export default function ProgressGalleryPage() {
               </div>
               
               {/* Stats difference */}
-              <div className="mt-6 glass-card p-6 rounded-[2rem] flex items-center justify-center gap-8">
+              <div className="mt-6 iron-card p-6 rounded-[2rem] flex items-center justify-center gap-8">
                 <div className="text-center">
                   <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest mb-1">Time Diff</p>
                   <p className="text-2xl font-bold">{Math.abs(Math.round((new Date(afterLog.log_date).getTime() - new Date(beforeLog.log_date).getTime()) / (1000 * 60 * 60 * 24)))} days</p>
@@ -450,7 +453,7 @@ export default function ProgressGalleryPage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className="break-inside-avoid glass-card rounded-2xl overflow-hidden group relative border border-white/5 shadow-lg"
+                  className="break-inside-avoid iron-card rounded-2xl overflow-hidden group relative border border-white/5 shadow-lg"
                 >
                   {log.photo_url && (
                     <div className="relative w-full aspect-[3/4]">
@@ -498,7 +501,7 @@ export default function ProgressGalleryPage() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }} 
               animate={{ opacity: 1, scale: 1, y: 0 }} 
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-md glass-card rounded-[2rem] p-6 border border-white/10 shadow-2xl"
+              className="relative w-full max-w-md iron-card rounded-[2rem] p-6 border border-white/10 shadow-2xl"
             >
               <h2 className="text-2xl font-bold mb-6">Log Progress</h2>
               

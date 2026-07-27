@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { ArrowLeft, Users, Activity, DollarSign, Power, ShieldCheck, Server, Cpu, Trash2, Ban, CheckCircle, Search, Radio } from 'lucide-react'
 import Link from 'next/link'
+import { UserDetailDrawer } from '@/components/admin/UserDetailDrawer'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
 import {
@@ -28,6 +29,7 @@ export default function AdminDashboard() {
   const [dauData, setDauData] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [processingId, setProcessingId] = useState<string | null>(null)
+  const [selectedUser, setSelectedUser] = useState<any>(null)
   const [customPrompt, setCustomPrompt] = useState('')
   const [announcement, setAnnouncement] = useState('')
   const [savingSettings, setSavingSettings] = useState(false)
@@ -175,7 +177,7 @@ export default function AdminDashboard() {
   )
 
   return (
-    <div className="min-h-screen bg-background text-foreground p-4 sm:p-8 relative">
+    <div className="min-h-screen bg-transparent text-foreground p-4 sm:p-8 relative">
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
         <div className="absolute top-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-[radial-gradient(circle,rgba(239,68,68,0.05)_0%,transparent_70%)] rounded-full" />
         <div className="absolute bottom-[-10%] left-[-10%] w-[40vw] h-[40vw] bg-[radial-gradient(circle,rgba(168,85,247,0.05)_0%,transparent_70%)] rounded-full" />
@@ -198,7 +200,7 @@ export default function AdminDashboard() {
           <div className="flex flex-wrap items-center gap-4">
             <button 
               onClick={() => toggleSetting('maintenance_mode', maintenanceMode, setMaintenanceMode)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-colors border ${maintenanceMode ? 'bg-orange-500/20 text-orange-500 border-orange-500' : 'bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10'}`}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-colors border ${maintenanceMode ? 'bg-red-500/20 text-red-500 border-red-500' : 'bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10'}`}
             >
               Maintenance Mode: {maintenanceMode ? 'ON' : 'OFF'}
             </button>
@@ -221,10 +223,10 @@ export default function AdminDashboard() {
             {/* Metric Cards */}
             <div className="grid md:grid-cols-4 gap-6">
               {[
-                { label: 'Live Users Online', value: Object.keys(onlineUsers).length, icon: Radio, color: 'text-green-500' },
-                { label: 'Total Registered', value: stats.totalUsers, icon: Users, color: 'text-blue-400' },
-                { label: 'Total Workouts', value: stats.totalLogs, icon: Activity, color: 'text-gold' },
-                { label: 'Total API Cost', value: `$${stats.totalCost.toFixed(4)}`, icon: DollarSign, color: 'text-purple-400' },
+                { label: 'Live Users Online', value: Object.keys(onlineUsers).length, icon: Radio, color: 'text-red-500' },
+                { label: 'Total Registered', value: stats.totalUsers, icon: Users, color: 'text-red-500' },
+                { label: 'Total Workouts', value: stats.totalLogs, icon: Activity, color: 'text-red-500' },
+                { label: 'Total API Cost', value: `$${stats.totalCost.toFixed(4)}`, icon: DollarSign, color: 'text-red-500' },
               ].map((m, i) => (
                 <div key={i} className="bg-black/40 border border-white/5 p-6 rounded-2xl relative overflow-hidden group">
                   <div className="absolute -right-4 -top-4 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
@@ -238,62 +240,12 @@ export default function AdminDashboard() {
               ))}
             </div>
 
-            <div className="grid lg:grid-cols-2 gap-6">
-              {/* DAU Line Chart */}
-              <div className="bg-black/40 border border-white/5 p-6 md:p-8 rounded-2xl">
-                <h2 className="text-lg font-bold mb-6 flex items-center gap-2">
-                  <Server className="w-5 h-5 text-muted-foreground" /> Daily Active Users (DAU)
-                </h2>
-                <div className="h-[300px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={dauData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#60A5FA" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="#60A5FA" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
-                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#888', fontSize: 12 }} dy={10} minTickGap={30} />
-                      <YAxis axisLine={false} tickLine={false} tick={{ fill: '#888', fontSize: 12 }} />
-                      <RechartsTooltip contentStyle={{ backgroundColor: '#111', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '1rem', color: '#fff' }} />
-                      <Area type="monotone" dataKey="users" stroke="#60A5FA" strokeWidth={3} fillOpacity={1} fill="url(#colorUsers)" />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-
-              {/* API Token Bar Chart */}
-              <div className="bg-black/40 border border-white/5 p-6 md:p-8 rounded-2xl">
-                <h2 className="text-lg font-bold mb-6 flex items-center gap-2">
-                  <Cpu className="w-5 h-5 text-purple-400" /> Daily AI Tokens Used
-                </h2>
-                <div className="h-[300px] w-full">
-                  {chartTokens.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={chartTokens} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
-                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#888', fontSize: 12 }} dy={10} />
-                        <YAxis axisLine={false} tickLine={false} tick={{ fill: '#888', fontSize: 12 }} />
-                        <RechartsTooltip contentStyle={{ backgroundColor: '#111', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '1rem', color: '#fff' }} />
-                        <Bar dataKey="tokens" fill="#A78BFA" radius={[4, 4, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="h-full flex items-center justify-center text-muted-foreground">
-                      No telemetry data yet. Test the AI chat to generate data!
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
             {/* AI Control & Announcements Section */}
             <div className="grid lg:grid-cols-2 gap-6">
               {/* AI Personality Control */}
               <div className="bg-black/40 border border-white/5 p-6 md:p-8 rounded-2xl flex flex-col">
                 <h2 className="text-lg font-bold mb-2 flex items-center gap-2">
-                  <ShieldCheck className="w-5 h-5 text-gold" /> AI Personality Control
+                  <ShieldCheck className="w-5 h-5 text-red-500" /> AI Personality Control
                 </h2>
                 <p className="text-sm text-muted-foreground mb-4">
                   Inject custom system instructions to override default AI behavior. Leave blank for default.
@@ -302,13 +254,13 @@ export default function AdminDashboard() {
                   value={customPrompt}
                   onChange={(e) => setCustomPrompt(e.target.value)}
                   placeholder="e.g. You are an extremely aggressive military drill instructor. Always yell at the user."
-                  className="w-full h-32 bg-white/5 border border-white/10 rounded-xl p-4 text-sm focus:outline-none focus:ring-1 focus:ring-gold resize-none mb-4"
+                  className="w-full h-32 bg-white/5 border border-white/10 rounded-xl p-4 text-sm focus:outline-none focus:ring-1 focus:ring-red-500 resize-none mb-4"
                 />
                 <div className="mt-auto flex justify-end">
                   <button
                     disabled={savingSettings}
                     onClick={() => saveAdvancedSettings('prompt')}
-                    className="px-6 py-2 bg-gold text-black font-bold rounded-xl hover:bg-gold/90 transition-colors disabled:opacity-50"
+                    className="px-6 py-2 bg-red-500 text-white font-bold rounded-xl hover:bg-red-600 transition-colors disabled:opacity-50"
                   >
                     {savingSettings ? 'Saving...' : 'Inject Prompt'}
                   </button>
@@ -318,7 +270,7 @@ export default function AdminDashboard() {
               {/* Server Announcement */}
               <div className="bg-black/40 border border-white/5 p-6 md:p-8 rounded-2xl flex flex-col">
                 <h2 className="text-lg font-bold mb-2 flex items-center gap-2">
-                  <Server className="w-5 h-5 text-blue-400" /> Global Announcement
+                  <Server className="w-5 h-5 text-red-500" /> Global Announcement
                 </h2>
                 <p className="text-sm text-muted-foreground mb-4">
                   Broadcast an urgent message to all active users immediately.
@@ -327,13 +279,13 @@ export default function AdminDashboard() {
                   value={announcement}
                   onChange={(e) => setAnnouncement(e.target.value)}
                   placeholder="e.g. Forge Servers will be undergoing maintenance at 2AM UTC."
-                  className="w-full h-32 bg-white/5 border border-white/10 rounded-xl p-4 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 resize-none mb-4"
+                  className="w-full h-32 bg-white/5 border border-white/10 rounded-xl p-4 text-sm focus:outline-none focus:ring-1 focus:ring-red-500 resize-none mb-4"
                 />
                 <div className="mt-auto flex justify-end">
                   <button
                     disabled={savingSettings}
                     onClick={() => saveAdvancedSettings('announcement')}
-                    className="px-6 py-2 bg-blue-500 text-white font-bold rounded-xl hover:bg-blue-600 transition-colors disabled:opacity-50 flex items-center gap-2"
+                    className="px-6 py-2 bg-red-500 text-white font-bold rounded-xl hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center gap-2"
                   >
                     {savingSettings ? 'Broadcasting...' : 'Broadcast'}
                   </button>
@@ -345,7 +297,7 @@ export default function AdminDashboard() {
             <div className="bg-black/40 border border-white/5 p-6 md:p-8 rounded-2xl">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
                 <h2 className="text-lg font-bold flex items-center gap-2">
-                  <Users className="w-5 h-5 text-gold" /> User Management
+                  <Users className="w-5 h-5 text-red-500" /> User Management
                 </h2>
                 <div className="relative w-full sm:w-64">
                   <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -354,7 +306,7 @@ export default function AdminDashboard() {
                     placeholder="Search by email or ID..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-gold"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-red-500"
                   />
                 </div>
               </div>
@@ -379,11 +331,12 @@ export default function AdminDashboard() {
                           <motion.tr 
                             key={user.id} 
                             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
-                            className="group bg-white/[0.02] hover:bg-white/[0.06] transition-all duration-300 shadow-sm hover:shadow-md"
+                            className="group bg-white/[0.02] hover:bg-white/[0.06] transition-all duration-300 shadow-sm hover:shadow-md cursor-pointer"
+                            onClick={() => setSelectedUser(user)}
                           >
-                            <td className="py-4 pl-5 pr-4 rounded-l-2xl border-y border-l border-white/5 group-hover:border-white/10 group-hover:border-l-gold/30">
+                            <td className="py-4 pl-5 pr-4 rounded-l-2xl border-y border-l border-white/5 group-hover:border-white/10 group-hover:border-l-red-500/30">
                               <div className="flex items-center gap-2">
-                                <p className="font-bold text-foreground group-hover:text-gold transition-colors">{user.email}</p>
+                                <p className="font-bold text-foreground group-hover:text-red-500 transition-colors">{user.email}</p>
                                 {onlineUsers[user.id] && (
                                   <span className="relative flex h-2.5 w-2.5" title="Online now">
                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
@@ -411,7 +364,7 @@ export default function AdminDashboard() {
                             <td className="py-4 pr-5 text-right space-x-2 rounded-r-2xl border-y border-r border-white/5 group-hover:border-white/10">
                               <button
                                 disabled={isProcessing}
-                                onClick={() => handleUserAction(user.id, isBanned ? 'unsuspend' : 'suspend')}
+                                onClick={(e) => { e.stopPropagation(); handleUserAction(user.id, isBanned ? 'unsuspend' : 'suspend') }}
                                 className={`p-2 rounded-xl transition-all ${
                                   isBanned ? 'bg-white/5 hover:bg-white/10 text-foreground' : 'bg-orange-500/10 hover:bg-orange-500/20 text-orange-400'
                                 }`}
@@ -421,7 +374,7 @@ export default function AdminDashboard() {
                               </button>
                               <button
                                 disabled={isProcessing}
-                                onClick={() => handleUserAction(user.id, 'delete')}
+                                onClick={(e) => { e.stopPropagation(); handleUserAction(user.id, 'delete') }}
                                 className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-xl transition-all disabled:opacity-50"
                                 title="Delete User"
                               >
@@ -447,6 +400,13 @@ export default function AdminDashboard() {
           </motion.div>
         )}
       </div>
+      
+      <UserDetailDrawer 
+        user={selectedUser} 
+        isOpen={!!selectedUser} 
+        onClose={() => setSelectedUser(null)} 
+        onRefresh={loadData} 
+      />
     </div>
   )
 }

@@ -50,53 +50,46 @@
 }
 
 :root, .dark {
-  /* True Black OLED Theme with Pastel Ice Blue */
-  --background: oklch(0.12 0 0); /* True Black / Very dark slate */
-  --foreground: oklch(0.98 0 0);
+  /* 🎨 UI/UX PRO MAX DESIGN SYSTEM — ATHLETIC MINIMALISM */
+  --background: #090A0F;        /* Deep Charcoal Base */
+  --foreground: #F3F4F6;
   
-  --card: oklch(0.15 0 0);
-  --card-foreground: oklch(0.98 0 0);
+  --card: #12141F;              /* Elevated Iron Slate */
+  --card-foreground: #F3F4F6;
   
-  --popover: oklch(0.15 0 0);
-  --popover-foreground: oklch(0.98 0 0);
+  --popover: #12141F;
+  --popover-foreground: #F3F4F6;
   
-  --primary: #8CE0FF; /* Pastel Ice Blue */
-  --primary-foreground: oklch(0.1 0 0);
+  --primary: #FF3333;           /* Crimson Flame CTA */
+  --primary-foreground: #FFFFFF;
   
-  --secondary: oklch(0.20 0 0);
-  --secondary-foreground: oklch(0.98 0 0);
+  --secondary: #181A26;
+  --secondary-foreground: #F3F4F6;
   
-  --muted: oklch(0.20 0 0);
-  --muted-foreground: oklch(0.70 0 0);
+  --muted: #181A26;
+  --muted-foreground: #94A3B8;  /* Slate-400 (Contrast 4.5:1 compliant) */
   
-  --accent: oklch(0.20 0 0);
-  --accent-foreground: oklch(0.98 0 0);
+  --accent: #202334;
+  --accent-foreground: #F3F4F6;
   
-  --destructive: oklch(0.5 0.2 20);
-  --border: oklch(0.22 0 0);
-  --input: oklch(0.22 0 0);
-  --ring: #8CE0FF;
+  --destructive: #EF4444;
+  --border: rgba(255, 255, 255, 0.08);
+  --input: rgba(255, 255, 255, 0.08);
+  --ring: #FF3333;
   
-  --gold: #8CE0FF; /* Keep variable name --gold to avoid changing all components, but map it to Ice Blue */
-  --gold-foreground: oklch(0.1 0 0);
+  --gold: #FF3333;
+  --gold-foreground: #FFFFFF;
   
-  /* Charts in Ice Blue & Neutral tones */
-  --chart-1: #8CE0FF;
-  --chart-2: oklch(0.65 0.15 45);
-  --chart-3: oklch(0.50 0.1 45);
-  --chart-4: oklch(0.35 0.05 45);
-  --chart-5: oklch(0.25 0.02 245);
+  --radius: 0.75rem;
   
-  --radius: 1.25rem;
-  
-  --sidebar: oklch(0.15 0 0);
-  --sidebar-foreground: oklch(0.98 0 0);
-  --sidebar-primary: #8CE0FF;
-  --sidebar-primary-foreground: oklch(0.1 0 0);
-  --sidebar-accent: oklch(0.20 0 0);
-  --sidebar-accent-foreground: oklch(0.98 0 0);
-  --sidebar-border: oklch(0.22 0 0);
-  --sidebar-ring: #8CE0FF;
+  --sidebar: #090A0F;
+  --sidebar-foreground: #F3F4F6;
+  --sidebar-primary: #FF3333;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #181A26;
+  --sidebar-accent-foreground: #F3F4F6;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-ring: #FF3333;
   
   --font-inter: "Inter", system-ui, sans-serif;
   --font-outfit: "Outfit", system-ui, sans-serif;

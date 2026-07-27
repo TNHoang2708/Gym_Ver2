@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error'] } : false,
   },
+  allowedDevOrigins: ['.serveousercontent.com', 'localhost:3000'],
   async headers() {
     return [
       {

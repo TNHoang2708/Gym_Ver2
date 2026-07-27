@@ -56,6 +56,8 @@ export interface UserMemory {
   user_id: string
   is_admin?: boolean
   display_name?: string
+  xp_points?: number
+  streak_days?: number
   hard_memory: HardMemory
   soft_memory: SoftMemory
   emotional_memory: EmotionalMemory

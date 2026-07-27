@@ -196,7 +196,7 @@ export default function OnboardingPage() {
   const [direction, setDirection] = useState(1) // 1 = forward, -1 = backward
 
   const step = STEPS[currentStep]
-  const progress = ((currentStep) / STEPS.length) * 100
+  const progress = ((currentStep + 1) / STEPS.length) * 100
   const isLast = currentStep === STEPS.length - 1
 
   // Get current step's answer value

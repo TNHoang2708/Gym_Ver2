@@ -80,7 +80,7 @@ export default function LeaderboardPage() {
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: index * 0.05 }}
-            className={`glass-card p-5 rounded-2xl flex items-center justify-between ${
+            className={`iron-card p-5 rounded-2xl flex items-center justify-between ${
               myRank?.rank === index + 1 ? 'ring-1 ring-gold bg-gold/5' : ''
             }`}
           >
@@ -107,7 +107,7 @@ export default function LeaderboardPage() {
         ))}
         
         {leaders.length === 0 && (
-          <div className="text-center p-12 glass-card rounded-[2rem]">
+          <div className="text-center p-12 iron-card rounded-[2rem]">
             <p className="text-muted-foreground">No workouts logged yet. Be the first to lift!</p>
           </div>
         )}
@@ -120,7 +120,7 @@ export default function LeaderboardPage() {
           animate={{ opacity: 1, y: 0 }}
           className="fixed bottom-24 left-1/2 -translate-x-1/2 w-full max-w-md px-4 z-20"
         >
-          <div className="glass-card p-4 rounded-full border-gold/30 glow-gold flex items-center justify-between">
+          <div className="iron-card p-4 rounded-full border-gold/30 glow-gold flex items-center justify-between">
             <div className="flex items-center gap-3">
               <ArrowUpCircle className="w-6 h-6 text-gold" />
               <span className="font-bold">Your Rank: #{myRank.rank}</span>

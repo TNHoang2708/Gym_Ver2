@@ -83,7 +83,7 @@ export default function FeedbackPage() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Star rating */}
-        <div className="glass-card rounded-2xl p-6 space-y-4">
+        <div className="iron-card rounded-2xl p-6 space-y-4">
           <p className="text-sm font-semibold text-center">How would you rate your experience?</p>
           <div className="flex justify-center gap-3">
             {[1, 2, 3, 4, 5].map((star) => (

@@ -218,6 +218,28 @@ export function parseAITags(rawText: string): ParsedTags {
   schedule = extractJsonBlock('[SCHEDULE:')
   nutrition = extractJsonBlock('[NUTRITION:')
 
+  // Fallback: If AI forgot the tag but output raw JSON for Schedule or Nutrition
+  if (!schedule && !nutrition) {
+    const firstBrace = cleanedText.indexOf('{')
+    const lastBrace = cleanedText.lastIndexOf('}')
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+      try {
+        const jsonStr = cleanedText.slice(firstBrace, lastBrace + 1)
+        const parsed = JSON.parse(jsonStr)
+        
+        if (parsed.days && parsed.frequency !== undefined) {
+          schedule = parsed
+          cleanedText = cleanedText.slice(0, firstBrace) + cleanedText.slice(lastBrace + 1)
+        } else if (parsed.food_name && parsed.calories !== undefined) {
+          nutrition = parsed
+          cleanedText = cleanedText.slice(0, firstBrace) + cleanedText.slice(lastBrace + 1)
+        }
+      } catch (e) {
+        // Not valid JSON or failed to parse, ignore
+      }
+    }
+  }
+
   // 2. Parse remaining simple tags (MEMORY, EMOTION, TOPIC)
   let match: RegExpExecArray | null
   TAG_REGEX.lastIndex = 0

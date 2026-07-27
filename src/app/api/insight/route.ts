@@ -14,7 +14,19 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Parse request body
-    const { nutrition, workoutStreak } = await request.json()
+    let nutrition, workoutStreak;
+    try {
+      const body = await request.json()
+      nutrition = body.nutrition
+      workoutStreak = body.workoutStreak
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+    }
+
+    // Basic sanitization
+    const safeCalories = Math.max(0, Math.min(10000, Number(nutrition?.calories) || 0))
+    const safeGoal = Math.max(0, Math.min(10000, Number(nutrition?.goal_calories) || 2000))
+    const safeStreak = Math.max(0, Math.min(10000, Number(workoutStreak) || 0))
 
     // 3. Load user memory
     const { data: memoryRow } = await supabase
@@ -41,8 +53,8 @@ User Context:
 - Current Mood: ${mood}
 - Main Goal: ${goal}
 - Recent Notes: ${recentNotes}
-- Today's Calories: ${nutrition?.calories || 0} / ${nutrition?.goal_calories || 2000} kcal
-- Workout Streak: ${workoutStreak} days
+- Today's Calories: ${safeCalories} / ${safeGoal} kcal
+- Workout Streak: ${safeStreak} days
 
 Instructions:
 - Write ONE sentence.

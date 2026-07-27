@@ -11,7 +11,8 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (!user.email?.includes('admin') && user.email !== 'admin@gymplanner.ai') {
+    const { data: roleData } = await supabase.from('user_roles').select('role').eq('user_id', user.id).single()
+    if (roleData?.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -28,7 +29,21 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 })
     }
 
-    return NextResponse.json({ users: usersData.users })
+    const { data: userMemoryData } = await adminClient
+      .from('user_memory')
+      .select('user_id, subscription_tier, xp_points, streak_days')
+
+    const mergedUsers = usersData.users.map(u => {
+      const memory = userMemoryData?.find(m => m.user_id === u.id)
+      return {
+        ...u,
+        subscription_tier: memory?.subscription_tier || 'free',
+        xp_points: memory?.xp_points || 0,
+        streak_days: memory?.streak_days || 0
+      }
+    })
+
+    return NextResponse.json({ users: mergedUsers })
   } catch (error: any) {
     console.error('Admin API Error:', error)
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
@@ -44,7 +59,8 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (!user.email?.includes('admin') && user.email !== 'admin@gymplanner.ai') {
+    const { data: roleData } = await supabase.from('user_roles').select('role').eq('user_id', user.id).single()
+    if (roleData?.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -79,7 +95,8 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (!user.email?.includes('admin') && user.email !== 'admin@gymplanner.ai') {
+    const { data: roleData } = await supabase.from('user_roles').select('role').eq('user_id', user.id).single()
+    if (roleData?.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 

@@ -11,7 +11,8 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (!user.email?.includes('admin') && user.email !== 'admin@gymplanner.ai') {
+    const { data: roleData } = await supabase.from('user_roles').select('role').eq('user_id', user.id).single()
+    if (roleData?.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -74,6 +75,26 @@ export async function GET(req: Request) {
       }
     })
 
+    // Fetch top 5 exercises from workout_session_logs
+    const { data: sessionLogs } = await supabase
+      .from('workout_session_logs')
+      .select('exercise_name')
+
+    const exerciseMap: Record<string, number> = {}
+    if (sessionLogs) {
+      sessionLogs.forEach(log => {
+        if (!exerciseMap[log.exercise_name]) {
+          exerciseMap[log.exercise_name] = 0
+        }
+        exerciseMap[log.exercise_name] += 1
+      })
+    }
+
+    const topExercises = Object.entries(exerciseMap)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5)
+
     return NextResponse.json({
       stats: {
         totalUsers,
@@ -81,7 +102,8 @@ export async function GET(req: Request) {
         totalCost,
       },
       chartTokens,
-      dauData
+      dauData,
+      topExercises
     })
   } catch (error: any) {
     console.error('Admin API Stats Error:', error)

@@ -3,6 +3,8 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
 
+import DOMPurify from 'isomorphic-dompurify'
+
 // Allow long requests just in case
 export const maxDuration = 30
 export const dynamic = 'force-dynamic'
@@ -18,11 +20,11 @@ export async function POST(req: Request) {
 
     const body = await req.json()
     
-    // Strict Input Validation
+    // Strict Input Validation & Sanitization
     const payloadSchema = z.object({
       totalVolume: z.number().min(0),
       sessionLogs: z.array(z.object({
-        exercise_name: z.string(),
+        exercise_name: z.string().transform(val => DOMPurify.sanitize(val)),
         set_number: z.number().positive()
       })).optional().default([])
     })
@@ -43,9 +45,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ summary: `Just moved ${totalVolume}kg of pure iron! Feeling like an absolute beast today! 🦍🔥` })
     }
 
-    const genAI = new GoogleGenerativeAI(apiKey)
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
-
     const prompt = `Write a short, hype, 2-sentence summary of this workout for a social feed. 
 The user moved a total volume of ${totalVolume}kg.
 Here are the exercises they did:
@@ -53,11 +52,11 @@ ${sessionLogs.map((l: { exercise_name: string, set_number: number }) => `- ${l.e
 
 Make it sound like a fitness influencer on Instagram. Use 1 or 2 emojis.`
 
+    const genAI = new GoogleGenerativeAI(apiKey)
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" })
     const result = await model.generateContent(prompt)
     const summary = result.response.text().trim()
 
-    // Estimate tokens since generateContent doesn't return usage directly in this simple call
-    // Or we can just log a fixed amount or fetch from response if available
     const usageMetadata = result.response.usageMetadata;
     if (usageMetadata) {
       const tokensUsed = usageMetadata.totalTokenCount || 0

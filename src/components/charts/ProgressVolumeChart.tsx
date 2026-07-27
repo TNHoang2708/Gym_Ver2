@@ -13,7 +13,7 @@ export default function ProgressVolumeChart({ data }: { data: any[] }) {
           contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', borderColor: 'rgba(212,175,106,0.3)', borderRadius: '12px', backdropFilter: 'blur(10px)' }} 
           itemStyle={{ color: '#D4AF6A', fontWeight: 'bold' }} 
           labelStyle={{ color: '#888', marginBottom: '4px' }}
-          formatter={(value: number) => [`${value} kg`, 'Volume']}
+          formatter={(value: any) => [`${value} kg`, 'Volume']}
         />
         <Bar dataKey="volume_kg" fill="#D4AF6A" radius={[4, 4, 0, 0]} maxBarSize={40} />
       </BarChart>

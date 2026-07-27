@@ -20,7 +20,7 @@ export default function Error({
       <motion.div 
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="glass-card max-w-sm w-full p-8 rounded-2xl shadow-xl border border-border"
+        className="iron-card max-w-sm w-full p-8 rounded-2xl shadow-xl border border-border"
       >
         <div className="w-16 h-16 bg-muted/30 text-muted-foreground rounded-full flex items-center justify-center mx-auto mb-6">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">

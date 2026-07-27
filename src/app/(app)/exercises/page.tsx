@@ -106,7 +106,7 @@ export default function ExercisesPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredExercises.map(ex => (
-            <div key={ex.id} className="glass-card rounded-2xl overflow-hidden flex flex-col border border-white/5 hover:border-gold/30 transition-colors">
+            <div key={ex.id} className="iron-card rounded-2xl overflow-hidden flex flex-col border border-white/5 hover:border-gold/30 transition-colors">
               <div className="p-4 bg-black/20 flex-1 relative flex items-center justify-center min-h-[200px]">
                  <AnatomyMap activeMuscles={ex.target_muscles} className="scale-75 origin-center" />
               </div>

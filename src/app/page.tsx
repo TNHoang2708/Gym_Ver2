@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { ArrowRight, Download, Apple, Play, Dumbbell, X, Star, Zap, Brain, Activity, ShieldCheck, Pointer, ChevronRight } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion'
 import Image from 'next/image'
+import { ForgeLogo } from '@/components/ForgeLogo'
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -21,6 +22,14 @@ export default function LandingPage() {
   const [showInstallModal, setShowInstallModal] = useState(false)
   const [scrolled, setScrolled] = useState(false)
 
+  const containerRef = useRef<HTMLDivElement>(null)
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start start", "end start"]
+  })
+  const yHeroText = useTransform(scrollYProgress, [0, 1], [0, 200])
+  const opacityHeroText = useTransform(scrollYProgress, [0, 0.8], [1, 0])
+  const yHeroBg = useTransform(scrollYProgress, [0, 1], [0, 150])
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: any) => {
       e.preventDefault()
@@ -51,155 +60,144 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col font-sans bg-background text-foreground relative overflow-hidden">
+    <div ref={containerRef} className="min-h-screen flex flex-col font-sans bg-background text-foreground relative overflow-hidden">
       
       {/* Dynamic Navbar */}
-      <nav className={`fixed top-0 w-full z-50 transition-all duration-300 transform-gpu ${scrolled ? 'bg-black/80 backdrop-blur-xl border-b border-white/5 py-4' : 'bg-transparent py-6'}`}>
-        <div className="w-full max-w-[1400px] mx-auto px-6 flex items-center justify-between">
+      <nav className={`fixed top-0 w-full z-50 transition-all duration-300 transform-gpu ${scrolled ? 'bg-[#090A0F]/95 backdrop-blur-xl border-b border-white/[0.08] py-4' : 'bg-transparent py-6'}`}>
+        <div className="w-full max-w-7xl mx-auto px-4 md:px-8 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-black border border-gold/20 flex items-center justify-center overflow-hidden glow-gold transform-gpu transition-transform hover:scale-105">
-              <Image src="/logo.png" alt="Forge Logo" width={40} height={40} className="w-full h-full object-cover" priority />
-            </div>
-            <span className="font-heading font-bold text-xl tracking-tight text-foreground uppercase">
-              Forge
+            <ForgeLogo className="w-10 h-10" glowing={true} />
+            <span className="font-heading font-black text-2xl tracking-tight text-white uppercase mt-0.5">
+              FORGE <span className="text-red-500 font-mono text-xs font-bold">PRO AI</span>
             </span>
           </div>
-
-          <div className="hidden lg:flex items-center gap-8 bg-white/5 px-8 py-3 rounded-full border border-white/5 backdrop-blur-md">
-            <Link href="#features" className="text-sm font-medium text-muted-foreground hover:text-white transition-colors">Features</Link>
-            <Link href="#ai" className="text-sm font-medium text-muted-foreground hover:text-white transition-colors">AI Coach</Link>
-            <Link href="#pricing" className="text-sm font-medium text-muted-foreground hover:text-white transition-colors">Pricing</Link>
-            <Link href="#faq" className="text-sm font-medium text-muted-foreground hover:text-white transition-colors">FAQ</Link>
+          <div className="hidden lg:flex items-center gap-8 bg-[#12141F] px-8 py-2.5 rounded-xl border border-white/[0.08]">
+            <Link href="#features" className="text-xs font-mono font-bold uppercase tracking-wider text-zinc-300 hover:text-white transition-colors">FEATURES</Link>
+            <Link href="#ai" className="text-xs font-mono font-bold uppercase tracking-wider text-zinc-300 hover:text-white transition-colors">AI COACH</Link>
+            <Link href="#pricing" className="text-xs font-mono font-bold uppercase tracking-wider text-zinc-300 hover:text-white transition-colors">PRICING</Link>
+            <Link href="#faq" className="text-xs font-mono font-bold uppercase tracking-wider text-zinc-300 hover:text-white transition-colors">FAQ</Link>
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center bg-white/5 rounded-full p-1 pl-4 shadow-sm border border-white/5 backdrop-blur-sm cursor-pointer hover:bg-white/10 transition-colors" onClick={handleInstallClick}>
-              <span className="text-xs font-semibold mr-3 text-muted-foreground">Get App</span>
-              <button className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center transition-colors">
+            <div className="hidden sm:flex items-center bg-[#12141F] rounded-xl p-1 pl-4 border border-white/[0.08] cursor-pointer hover:border-white/20 transition-all" onClick={handleInstallClick}>
+              <span className="text-[11px] font-mono uppercase tracking-widest font-bold mr-3 text-zinc-400">GET APP</span>
+              <button className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center transition-colors">
                 <Apple className="w-4 h-4 text-white" />
               </button>
-              <button className="w-8 h-8 rounded-full bg-gold text-black flex items-center justify-center ml-1 glow-gold">
+              <button className="w-8 h-8 rounded-lg bg-red-600 text-white flex items-center justify-center ml-1 shadow-md">
                 <Download className="w-4 h-4" />
               </button>
             </div>
             <Link 
-              href="/register" 
-              className="flex items-center gap-2 text-sm font-semibold bg-white text-black px-5 py-2.5 rounded-full hover:bg-neutral-200 transition-colors transform-gpu active:scale-95"
+              href="/login" 
+              className="flex items-center gap-2 text-xs font-mono font-bold uppercase tracking-wider bg-white text-black px-6 py-3 rounded-xl hover:bg-zinc-200 transition-all active:scale-95 shadow-md min-h-[44px]"
             >
-              Sign In <ArrowRight className="w-4 h-4" />
+              SIGN IN <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
         </div>
       </nav>
 
       {/* Main Content Padding for Fixed Nav */}
-      <div className="pt-32 pb-20 px-6">
+      <div className="pt-32 pb-20 px-4 md:px-8">
         {/* Hero Section */}
-        <main className="w-full max-w-[1400px] mx-auto grid lg:grid-cols-[1.2fr_0.8fr] gap-12 lg:gap-8 items-center relative z-10">
+        <main className="w-full max-w-7xl mx-auto grid lg:grid-cols-[1.1fr_0.9fr] gap-12 lg:gap-12 items-center relative z-10">
           
           {/* Left Content */}
           <motion.div 
-            className="max-w-2xl"
+            className="max-w-3xl"
+            style={{ y: yHeroText, opacity: opacityHeroText }}
             variants={containerVariants}
             initial="hidden"
             animate="visible"
           >
-            <motion.div variants={itemVariants} className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-gold/30 bg-gold/5 text-gold text-xs font-bold tracking-widest uppercase mb-6 backdrop-blur-md">
-              <Zap className="w-3.5 h-3.5" /> Introducing Forge AI 2.0
+            <motion.div variants={itemVariants} className="inline-flex items-center gap-2 px-4 py-1.5 rounded-lg border border-red-600/30 bg-red-600/10 text-red-400 text-[11px] font-mono font-bold tracking-widest uppercase mb-6">
+              <Zap className="w-4 h-4" /> ATHLETIC AI TRAINING ENGINE
             </motion.div>
 
-            <motion.h1 variants={itemVariants} className="text-[4rem] md:text-[6rem] lg:text-[7rem] leading-[0.95] font-medium tracking-tighter mb-6 text-white">
-              Forge <span className="font-serif italic text-gold font-light">your</span><br />legacy
+            <motion.h1 variants={itemVariants} className="text-5xl md:text-7xl lg:text-8xl font-heading font-black tracking-tight uppercase leading-[0.95] mb-6 text-white">
+              FORGE YOUR <span className="text-red-500">LEGACY</span>
             </motion.h1>
 
-            <motion.p variants={itemVariants} className="text-muted-foreground text-xl leading-relaxed mb-10 max-w-lg font-light">
-              Experience the pinnacle of intelligent fitness. Personalized AI coaching, precise nutrition tracking, and elite performance analytics.
+            <motion.p variants={itemVariants} className="text-zinc-300 text-lg md:text-xl leading-relaxed mb-10 max-w-xl font-light">
+              No excuses. Only progress. AI-generated workout splits, macro telemetry, and real-time athletic guidance engineered for dedicated lifters.
             </motion.p>
 
             <motion.div variants={itemVariants} className="flex flex-col sm:flex-row items-center gap-4">
               <Link 
                 href="/register" 
-                className="w-full sm:w-auto px-8 py-4 bg-gold text-black rounded-full font-bold text-lg transition-transform hover:scale-105 active:scale-95 glow-gold flex items-center justify-center gap-2 transform-gpu"
+                className="w-full sm:w-auto px-8 py-4 bg-red-600 hover:bg-red-500 text-white font-mono font-black text-xs uppercase tracking-wider rounded-xl transition-all active:scale-95 shadow-lg shadow-red-600/30 flex items-center justify-center gap-2.5 min-h-[48px]"
               >
-                Start Free Trial <Pointer className="w-5 h-5 -rotate-12 animate-pulse" />
+                START FREE TRIAL <ArrowRight className="w-4 h-4" />
               </Link>
               <button 
                 onClick={handleInstallClick}
-                className="w-full sm:w-auto px-8 py-4 border border-white/20 text-white bg-white/5 backdrop-blur-sm rounded-full font-semibold text-lg transition-all hover:bg-white/10 active:scale-95 transform-gpu flex items-center justify-center gap-2"
+                className="w-full sm:w-auto px-8 py-4 border border-white/[0.08] text-white bg-[#12141F] rounded-xl font-mono font-bold text-xs uppercase tracking-wider transition-all hover:border-white/20 active:scale-95 flex items-center justify-center gap-2.5 min-h-[48px]"
               >
-                <Apple className="w-5 h-5" /> Install App
+                <Apple className="w-4 h-4" /> INSTALL MOBILE APP
               </button>
             </motion.div>
           </motion.div>
 
-          {/* Right Content / Image */}
-          <motion.div 
-            className="relative w-full aspect-[4/5] lg:aspect-auto lg:h-[750px] rounded-[2.5rem] shadow-[0_0_80px_rgba(212,175,106,0.1)] border border-white/10 flex items-center justify-center group overflow-hidden transform-gpu"
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
-          >
-            <Image 
-              src="/hero_bw.png" 
-              alt="Professional bodybuilder" 
-              fill 
-              sizes="(max-width: 768px) 100vw, 50vw"
-              className="object-cover opacity-90 group-hover:scale-105 transition-transform duration-1000 transform-gpu"
-              priority
-            />
-            {/* Premium Overlays */}
-            <div className="absolute inset-0 bg-gradient-to-tr from-background via-transparent to-gold/5 pointer-events-none" />
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent pointer-events-none" />
-            
-            {/* Glassmorphism Floating Stats */}
-            <div className="absolute bottom-10 left-10 right-10 glass-card border border-white/10 rounded-3xl p-6 backdrop-blur-2xl bg-black/40 flex justify-between items-center transform-gpu hover:bg-black/50 transition-colors">
-              <div>
-                <p className="text-sm text-gold font-bold uppercase tracking-wider mb-1">Active Users</p>
-                <p className="text-3xl font-heading font-bold text-white">100k+</p>
+          {/* Right Content */}
+          <div className="flex flex-col gap-6 w-full lg:h-[700px]">
+            {/* Hero Banner Card */}
+            <motion.div 
+              className="relative w-full flex-1 rounded-2xl bg-[#12141F] border border-white/[0.08] shadow-2xl flex items-center justify-center group overflow-hidden transform-gpu min-h-[380px]"
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
+            >
+              <motion.div 
+                className="absolute inset-0 w-full h-[120%]"
+                style={{ y: yHeroBg, top: '-10%' }}
+              >
+                <Image 
+                  src="/hero_bw.png" 
+                  alt="Forge AI Fitness Athlete" 
+                  fill 
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                  className="object-cover opacity-85 group-hover:scale-105 transition-transform duration-1000 transform-gpu"
+                  priority
+                />
+              </motion.div>
+              <div className="absolute inset-0 bg-gradient-to-t from-[#090A0F] via-transparent to-transparent pointer-events-none" />
+            </motion.div>
+
+            {/* Live Stats Row */}
+            <div className="bg-[#12141F] border border-white/[0.08] rounded-2xl p-6 flex flex-col sm:flex-row justify-around items-center shrink-0 shadow-xl">
+              <div className="text-center sm:text-left mb-4 sm:mb-0 w-full sm:w-auto">
+                <p className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest mb-1">ACTIVE ATHLETES</p>
+                <p className="text-3xl font-mono font-black text-white tabular-nums">100K+</p>
               </div>
-              <div className="w-px h-12 bg-white/10" />
-              <div>
-                <p className="text-sm text-gold font-bold uppercase tracking-wider mb-1">Meals Logged</p>
-                <p className="text-3xl font-heading font-bold text-white">5.2M</p>
+              <div className="hidden sm:block w-px h-10 bg-white/[0.08]" />
+              <div className="text-center sm:text-left w-full sm:w-auto">
+                <p className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest mb-1">MEALS ANALYZED</p>
+                <p className="text-3xl font-mono font-black text-white tabular-nums">5.2M</p>
+              </div>
+              <div className="hidden sm:block w-px h-10 bg-white/[0.08]" />
+              <div className="text-center sm:text-left w-full sm:w-auto mt-4 sm:mt-0">
+                <p className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest mb-1">AI PRECISION</p>
+                <p className="text-3xl font-mono font-black text-emerald-400 tabular-nums">99.4%</p>
               </div>
             </div>
-          </motion.div>
+          </div>
         </main>
       </div>
 
-      {/* Bento Grid Features Section */}
-      <section className="w-full max-w-[1400px] mx-auto px-6 py-24 relative z-10">
-        <div className="mb-16">
-          <h2 className="text-4xl md:text-5xl font-heading font-bold mb-4">Elite Intelligence.</h2>
-          <p className="text-xl text-muted-foreground font-light max-w-2xl">Everything you need to sculpt the perfect physique, powered by next-generation AI.</p>
+      {/* Features Section */}
+      <section id="features" className="w-full max-w-7xl mx-auto px-4 md:px-8 py-20 relative z-10">
+        <div className="text-center max-w-2xl mx-auto mb-16">
+          <h2 className="text-3xl md:text-5xl font-heading font-black mb-3 text-white uppercase tracking-tight">BUILT FOR HIGH PERFORMERS</h2>
+          <p className="text-zinc-400 font-mono text-xs uppercase tracking-widest">EVERYTHING YOU NEED TO OPTIMIZE YOUR TRAINING AND NUTRITION</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-[320px]">
-          {/* Feature 1 - Large */}
-          <motion.div 
-            className="md:col-span-2 md:row-span-2 glass-card rounded-[2rem] p-10 relative overflow-hidden group border border-white/5 hover:border-gold/30 transition-colors"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-          >
-            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gold/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/3 group-hover:bg-gold/20 transition-colors" />
-            <Brain className="w-12 h-12 text-gold mb-6 relative z-10" />
-            <h3 className="text-3xl font-bold mb-4 text-white relative z-10">Pro AI Coach</h3>
-            <p className="text-lg text-muted-foreground relative z-10 max-w-md">Your personal trainer, nutritionist, and motivator. Available 24/7. Trained on thousands of elite athletic regimens.</p>
-            
-            {/* Mockup UI Element inside card */}
-            <div className="absolute bottom-10 right-10 left-10 md:left-auto md:w-[400px] h-40 bg-black/60 backdrop-blur-md rounded-2xl border border-white/10 p-6 shadow-2xl transform-gpu group-hover:-translate-y-2 transition-transform">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-8 h-8 rounded-full bg-gold flex items-center justify-center"><Brain className="w-4 h-4 text-black" /></div>
-                <div className="h-4 w-24 bg-white/20 rounded-full" />
-              </div>
-              <div className="space-y-2">
-                <div className="h-3 w-full bg-white/10 rounded-full" />
-                <div className="h-3 w-4/5 bg-white/10 rounded-full" />
-                <div className="h-3 w-2/3 bg-white/10 rounded-full" />
-              </div>
-            </div>
-          </motion.div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-[#12141F] border border-white/[0.08] rounded-2xl p-8 hover:border-white/20 transition-all duration-300 shadow-xl">
+            <Brain className="w-7 h-7 text-red-500 mb-5" />
+            <h3 className="text-lg font-black mb-2 text-white uppercase tracking-tight">PRO AI COACH</h3>
+            <p className="text-xs text-zinc-400 leading-relaxed font-light">Personalized workout regimens and real-time athletic guidance trained on elite performance data.</p>
+          </div>
 
           {/* Feature 2 */}
           <motion.div 

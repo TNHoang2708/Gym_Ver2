@@ -3,12 +3,20 @@ import { createClient } from '@/lib/supabase/client'
 import type { UserMemory, DailyNutritionSummary, WorkoutLog, WorkoutSchedule } from '@/types'
 import { calculateNutritionGoals } from '@/lib/nutrition'
 
+import Cookies from 'js-cookie'
+
 const supabase = createClient()
 
 export function useDashboardData() {
   const fetcher = async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error("Not logged in")
+
+    let activeUserId = user.id
+    const impersonateId = Cookies.get('impersonate_user_id')
+    if (impersonateId) {
+      activeUserId = impersonateId
+    }
 
     const today = new Date().toISOString().split('T')[0]
 
@@ -18,10 +26,10 @@ export function useDashboardData() {
       { data: workoutLogs },
       { data: schedules }
     ] = await Promise.all([
-      supabase.from('user_memory').select('*').eq('user_id', user.id).single(),
-      supabase.from('food_logs').select('*').eq('user_id', user.id).eq('log_date', today),
-      supabase.from('workout_logs').select('*').eq('user_id', user.id).order('log_date', { ascending: false }).limit(90),
-      supabase.from('workout_schedules').select('*').eq('user_id', user.id).eq('active', true).order('created_at', { ascending: false }).limit(1)
+      supabase.from('user_memory').select('*').eq('user_id', activeUserId).single(),
+      supabase.from('food_logs').select('*').eq('user_id', activeUserId).eq('log_date', today),
+      supabase.from('workout_logs').select('*').eq('user_id', activeUserId).order('log_date', { ascending: false }).limit(90),
+      supabase.from('workout_schedules').select('*').eq('user_id', activeUserId).eq('active', true).order('created_at', { ascending: false }).limit(1)
     ])
 
     const memory = memData as UserMemory | null
@@ -82,11 +90,12 @@ export function useDashboardData() {
       nutrition,
       workoutLogs: logs,
       schedule,
-      streak: currentStreak,
+      streak: Math.max(currentStreak, memory?.streak_days || 0),
     }
   }
 
-  const { data, error, mutate, isLoading } = useSWR('dashboardData', fetcher, {
+  const impersonateId = Cookies.get('impersonate_user_id') || 'self'
+  const { data, error, mutate, isLoading } = useSWR(['dashboardData', impersonateId], fetcher, {
     revalidateOnFocus: false,
     refreshInterval: 300000, // refresh every 5 minutes
     dedupingInterval: 60000,
@@ -100,16 +109,23 @@ export function useDiaryData() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error("Not logged in")
 
+    let activeUserId = user.id
+    const impersonateId = Cookies.get('impersonate_user_id')
+    if (impersonateId) {
+      activeUserId = impersonateId
+    }
+
     const { data } = await supabase
       .from('diary_entries')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', activeUserId)
       .order('entry_date', { ascending: false })
 
     return data || []
   }
 
-  const { data, error, mutate, isLoading } = useSWR('diaryData', fetcher, {
+  const impersonateId = Cookies.get('impersonate_user_id') || 'self'
+  const { data, error, mutate, isLoading } = useSWR(['diaryData', impersonateId], fetcher, {
     revalidateOnFocus: false,
     refreshInterval: 300000,
     dedupingInterval: 60000,
@@ -123,20 +139,27 @@ export function useWorkoutHistory() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error("Not logged in")
 
+    let activeUserId = user.id
+    const impersonateId = Cookies.get('impersonate_user_id')
+    if (impersonateId) {
+      activeUserId = impersonateId
+    }
+
     const { data: logs } = await supabase
       .from('workout_logs')
       .select(`
         *,
         workout_session_logs (*)
       `)
-      .eq('user_id', user.id)
+      .eq('user_id', activeUserId)
       .eq('trained', true)
       .order('log_date', { ascending: false })
 
     return logs || []
   }
 
-  const { data, error, mutate, isLoading } = useSWR('workoutHistoryData', fetcher, {
+  const impersonateId = Cookies.get('impersonate_user_id') || 'self'
+  const { data, error, mutate, isLoading } = useSWR(['workoutHistoryData', impersonateId], fetcher, {
     revalidateOnFocus: false,
     refreshInterval: 300000,
   })
@@ -148,6 +171,12 @@ export function useNutritionData() {
   const fetcher = async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error("Not logged in")
+
+    let activeUserId = user.id
+    const impersonateId = Cookies.get('impersonate_user_id')
+    if (impersonateId) {
+      activeUserId = impersonateId
+    }
 
     const today = new Date().toISOString().split('T')[0]
     
@@ -172,9 +201,9 @@ export function useNutritionData() {
       { data: favData },
       { data: weekLogs }
     ] = await Promise.all([
-      supabase.from('user_memory').select('hard_memory, soft_memory').eq('user_id', user.id).single(),
-      supabase.from('food_favourites').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
-      supabase.from('food_logs').select('*').eq('user_id', user.id).gte('log_date', days[0].date).lte('log_date', today)
+      supabase.from('user_memory').select('hard_memory, soft_memory').eq('user_id', activeUserId).single(),
+      supabase.from('food_favourites').select('*').eq('user_id', activeUserId).order('created_at', { ascending: false }),
+      supabase.from('food_logs').select('*').eq('user_id', activeUserId).gte('log_date', days[0].date).lte('log_date', today)
     ])
 
     const todayLogs = (weekLogs || []).filter((l: any) => l.log_date === today)
@@ -199,7 +228,8 @@ export function useNutritionData() {
     }
   }
 
-  const { data, error, mutate, isLoading } = useSWR('nutritionData', fetcher, {
+  const impersonateId = Cookies.get('impersonate_user_id') || 'self'
+  const { data, error, mutate, isLoading } = useSWR(['nutritionData', impersonateId], fetcher, {
     revalidateOnFocus: false,
     refreshInterval: 300000,
     dedupingInterval: 60000,

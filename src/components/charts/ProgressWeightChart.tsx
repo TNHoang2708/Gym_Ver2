@@ -12,7 +12,7 @@ export default function ProgressWeightChart({ data }: { data: any[] }) {
           contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', borderColor: 'rgba(212,175,106,0.3)', borderRadius: '12px', backdropFilter: 'blur(10px)' }} 
           itemStyle={{ color: '#D4AF6A', fontWeight: 'bold' }}
           labelStyle={{ color: '#888', marginBottom: '4px' }}
-          formatter={(value: number) => [`${value} kg`, 'Weight']}
+          formatter={(value: any) => [`${value} kg`, 'Weight']}
         />
         <Line type="monotone" dataKey="weight_kg" stroke="#D4AF6A" strokeWidth={3} dot={{ fill: '#000', stroke: '#D4AF6A', strokeWidth: 2, r: 4 }} activeDot={{ r: 6, fill: '#D4AF6A' }} />
       </LineChart>

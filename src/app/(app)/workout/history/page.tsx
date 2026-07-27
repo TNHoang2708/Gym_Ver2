@@ -56,7 +56,7 @@ export default function WorkoutHistoryPage() {
 
         {/* List */}
         {(!logs || logs.length === 0) ? (
-          <div className="glass-card p-12 rounded-[2rem] text-center border-dashed border-2 border-white/10">
+          <div className="iron-card p-12 rounded-[2rem] text-center border-dashed border-2 border-white/10">
             <Trophy className="w-16 h-16 text-gold/30 mx-auto mb-4" />
             <h3 className="text-xl font-bold mb-2">No completed workouts yet</h3>
             <p className="text-muted-foreground mb-6">Your history will appear here once you finish a workout.</p>
@@ -78,7 +78,7 @@ export default function WorkoutHistoryPage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
-                    className={`glass-card rounded-3xl overflow-hidden border transition-colors ${isExpanded ? 'border-gold/30 bg-black/40' : 'border-white/5 hover:bg-white/5'}`}
+                    className={`iron-card rounded-3xl overflow-hidden border transition-colors ${isExpanded ? 'border-gold/30 bg-black/40' : 'border-white/5 hover:bg-white/5'}`}
                   >
                     <button 
                       onClick={() => setExpandedId(isExpanded ? null : log.id)}

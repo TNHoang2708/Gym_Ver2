@@ -14,7 +14,7 @@ export default function ProUpgradePage() {
   ]
 
   const handleSubscribe = () => {
-    toast.success('Redirecting to Stripe Checkout...', { icon: '💳' })
+    toast.info('Stripe Checkout integration coming soon! 💳')
   }
 
   return (
@@ -46,7 +46,7 @@ export default function ProUpgradePage() {
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.1 }}
-          className="glass-card rounded-[2.5rem] p-8 mb-8 relative border-gold/30 glow-gold"
+          className="iron-card rounded-[2.5rem] p-8 mb-8 relative border-gold/30 glow-gold"
         >
           <div className="absolute -top-4 -right-4 w-24 h-24 bg-[radial-gradient(circle,rgba(212,175,106,0.15)_0%,transparent_70%)] rounded-full" />
           
